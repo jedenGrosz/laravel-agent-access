@@ -1,0 +1,34 @@
+laravel: '@testbench'
+env:
+  DB_CONNECTION: sqlite
+  DB_DATABASE: workbench/database/database.sqlite
+  CACHE_STORE: array
+  SESSION_DRIVER: array
+providers:
+  - Spatie\Permission\PermissionServiceProvider
+  - Laravel\Sanctum\SanctumServiceProvider
+  - LaravelAgentAccess\AgentAccessServiceProvider
+  - Laravel\Mcp\Server\McpServiceProvider
+  - Workbench\App\Providers\DemoServiceProvider
+seeders:
+  - Workbench\Database\Seeders\DemoSeeder
+workbench:
+  install: false
+  health: false
+  discovers:
+    web: false
+    api: false
+    commands: false
+    components: false
+    factories: false
+    views: false
+  build:
+    - create-sqlite-db
+    - migrate-fresh:
+        --seed: true
+        --force: true
+        --seeder: Workbench\Database\Seeders\DemoSeeder
+  sync:
+    - from: storage
+      to: workbench/storage
+      reverse: true
