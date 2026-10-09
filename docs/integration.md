@@ -82,7 +82,7 @@ The host issues user tokens and may add middleware enforcing token abilities. Re
 
 ## MCP with Sanctum
 
-Install `laravel/mcp:^1.0.1` in the host and register a Server containing the nine workflow tools from `LaravelAgentAccess\Adapters\Mcp\Tools`. Use the [OrdersServer](../workbench/app/Mcp/OrdersServer.php) as a complete registry example.
+Install `laravel/mcp:^1.0.1` in the host and register a Server containing the workflow tools from `LaravelAgentAccess\Adapters\Mcp\Tools`. The same registry includes optional discovery, simulation and execution-receipt tools. Use the [OrdersServer](../workbench/app/Mcp/OrdersServer.php) as a complete registry example.
 
 Business tools extend `AgentAccessTool`, set the registered `$action`, and define an input schema. The [RefundTool](../workbench/app/Mcp/RefundTool.php) delegates to the shared executor through the final base `handle()` method. Tool descriptions and discoverability do not authorize execution.
 

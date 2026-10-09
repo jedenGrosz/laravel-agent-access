@@ -177,8 +177,12 @@ HTTP endpoints are relative to `/agent-access/v1`:
 
 | Method | Path | Operation |
 | --- | --- | --- |
+| GET | `/actions` | Discover registered action metadata |
 | POST | `/check` | Preview an action/arguments pair |
+| POST | `/simulate` | Explain one grant rule for an authorized recipient |
 | POST | `/actions/{action}/execute` | Execute a registered action |
+| POST | `/actions/{action}/run` | Execute and return an execution receipt ID |
+| GET | `/executions`, `/executions/{id}` | Owned attempts and authorized receipt details |
 | POST | `/requests` | Create a request |
 | GET | `/requests`, `/requests/{id}` | Authorized list/details |
 | POST | `/requests/{id}/approve`, `/reject`, `/cancel` | Workflow transitions |
@@ -189,11 +193,11 @@ Lists use SQL candidate filters and paginate after full visibility evaluation: d
 
 `check`, `execute` and `request` accept `action` and `arguments`; requests additionally accept `rule_id`, `duration_seconds`, `max_uses`, `reason`, `idempotency_key`. HTTP also accepts `Idempotency-Key`. Route parameters determine the target record/action. Hidden records give 404; denied execution 403; validation 422; state/idempotency conflicts 409.
 
-For MCP install `laravel/mcp:^1.0.1`, register the nine tools under `Adapters\Mcp\Tools`, and protect the host server with Sanctum or existing Passport authentication. Extend `AgentAccessTool` for business tools, set its `$action`, and provide its schema. Its final `handle()` invokes the shared executor. An attribute on an arbitrary Laravel Tool alone does not enforce anything.
+For MCP install `laravel/mcp:^1.0.1`, register the workflow tools under `Adapters\Mcp\Tools`, and protect the host server with Sanctum or existing Passport authentication. The registry also provides `access.actions`, `access.simulate`, `access.run`, `access.execution` and `access.executions`; the [OrdersServer](workbench/app/Mcp/OrdersServer.php) registers all of them. Extend `AgentAccessTool` for business tools, set its `$action`, and provide its schema. Its final `handle()` invokes the shared executor. An attribute on an arbitrary Laravel Tool alone does not enforce anything.
 
 Tool errors contain `isError: true`, structured data and a text fallback. `ACCESS_REQUIRED` includes the missing requirement, candidate roles and independent grant options. HTTP and PHP expose the same decision model. Requestable tools can remain discoverable before access is granted.
 
-Artisan commands: `agent-access:install`, `validate`, `hierarchy`, `actions`, `check`, `simulate`, `request`, `requests`, `show`, `approve`, `reject`, `cancel`, `grants`, `revoke`, `expire`.
+Artisan commands: `agent-access:install`, `validate`, `doctor`, `hierarchy`, `actions`, `check`, `simulate`, `run`, `execution`, `executions`, `request`, `requests`, `show`, `approve`, `reject`, `cancel`, `grants`, `revoke`, `expire`. Read-only local installation/configuration commands do not require `--as`.
 
 ```sh
 php artisan agent-access:check --as=52 --input='{"action":"orders.refund","arguments":{"order_id":431,"amount_minor":10000,"currency":"PLN"}}'
@@ -226,4 +230,4 @@ docker compose run --rm -e LAA_DB_CONNECTION=mysql -e DB_HOST=mysql -e DB_PORT=3
 docker compose down
 ```
 
-SQLite skips only independent-process race tests. PostgreSQL/MySQL runs cover simultaneous approvals, one-use execution, approval/cancel and revoke/execute. Containers have isolated temporary databases and no public ports. CI additionally defines PHP 8.3/8.4/8.5 × Laravel 12/13 compatibility checks.
+SQLite skips only independent-process race tests. PostgreSQL/MySQL runs cover concurrent idempotent request creation, simultaneous approvals, one-use execution, approval/cancel and revoke/execute. Containers have isolated temporary databases and no public ports. CI additionally defines PHP 8.3/8.4/8.5 × Laravel 12/13 compatibility checks, exact framework floors, Passport OAuth and runtime-only installation in a fresh host.
