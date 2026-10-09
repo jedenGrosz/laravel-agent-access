@@ -18,6 +18,8 @@ Use [execution receipts](docs/execution-receipts.md) to retrieve durable admissi
 
 Use [installation diagnostics](docs/installation-doctor.md) to check a host's schema without changing it. The [roadmap](docs/roadmap.md) separates candidate functionality from public-release tasks and later IAM extensions.
 
+The [optional V0.2 administration preview](docs/administration.md) adds a Blade approval panel, queued database notifications and bounded cursor scans for large histories. These adapters are disabled by default and preserve the V0.1 services and existing API response shapes.
+
 ## Run the Orders demo
 
 ```sh

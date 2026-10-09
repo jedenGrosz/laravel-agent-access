@@ -55,6 +55,23 @@ final readonly class InstallationDoctor
             $installed = class_exists(Sanctum::class);
             $checks[] = ['check' => 'http_sanctum', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'AUTHENTICATION_PACKAGE_REQUIRED'];
         }
+        if (config('agent-access.notifications.enabled')) {
+            try {
+                $installed = Schema::hasTable('notifications') && Schema::hasColumns('notifications', ['id', 'notifiable_type', 'notifiable_id', 'data']);
+                $checks[] = ['check' => 'notification_storage', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'HOST_MIGRATION_REQUIRED'];
+                $connection = (string) config('queue.default');
+                $driver = config('queue.connections.'.$connection.'.driver');
+                $async = is_string($driver) && ! in_array($driver, ['sync', 'null'], true);
+                $checks[] = ['check' => 'notification_queue', 'passed' => $async, 'reason_code' => $async ? 'CONFIGURED' : 'ASYNC_QUEUE_REQUIRED'];
+                if ($driver === 'database') {
+                    $schema = Schema::connection(config('queue.connections.'.$connection.'.connection'));
+                    $installed = $schema->hasTable((string) config('queue.connections.'.$connection.'.table', 'jobs'));
+                    $checks[] = ['check' => 'notification_queue_storage', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'HOST_MIGRATION_REQUIRED'];
+                }
+            } catch (\Throwable) {
+                $checks[] = ['check' => 'notification_storage', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];
+            }
+        }
 
         return ['healthy' => ! in_array(false, array_column($checks, 'passed'), true), 'checks' => $checks];
     }

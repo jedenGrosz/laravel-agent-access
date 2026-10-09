@@ -6,6 +6,7 @@ namespace LaravelAgentAccess;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use LaravelAgentAccess\Actions\ActionRegistry;
@@ -18,8 +19,12 @@ use LaravelAgentAccess\Console\ManagementCommand;
 use LaravelAgentAccess\Contracts\AuditWriter;
 use LaravelAgentAccess\Contracts\IamAdapter;
 use LaravelAgentAccess\Contracts\InspectionAuthorizer;
+use LaravelAgentAccess\Contracts\NotificationRecipients;
 use LaravelAgentAccess\Contracts\PrincipalResolver;
 use LaravelAgentAccess\Contracts\RoleResolver;
+use LaravelAgentAccess\Events\AccessEvent;
+use LaravelAgentAccess\Notifications\EmptyNotificationRecipients;
+use LaravelAgentAccess\Notifications\NotifyAccessEvent;
 use LaravelAgentAccess\Rules\RoleHierarchy;
 use LaravelAgentAccess\Rules\RuleRegistry;
 
@@ -37,6 +42,7 @@ final class AgentAccessServiceProvider extends ServiceProvider
         $this->app->bind(PrincipalResolver::class, LaravelPrincipalResolver::class);
         $this->app->bind(InspectionAuthorizer::class, LaravelInspectionAuthorizer::class);
         $this->app->bind(AuditWriter::class, DatabaseAuditWriter::class);
+        $this->app->bind(NotificationRecipients::class, fn ($app) => $app->make(config('agent-access.notifications.recipients', EmptyNotificationRecipients::class)));
         $this->app->singleton(RuleRegistry::class, fn () => new RuleRegistry(config('agent-access.rules', [])));
         $this->app->singleton(ActionRegistry::class, fn ($app) => new ActionRegistry($app, config('agent-access.actions', [])));
         $this->app->singleton(RoleHierarchy::class, fn () => new RoleHierarchy(config('agent-access.hierarchy', [])));
@@ -65,6 +71,14 @@ final class AgentAccessServiceProvider extends ServiceProvider
         $this->publishes([__DIR__.'/../database/migrations' => database_path('migrations')], 'agent-access-migrations');
         if (config('agent-access.http.enabled')) {
             $this->loadRoutesFrom(__DIR__.'/../routes/agent-access.php');
+        }
+        if (config('agent-access.notifications.enabled')) {
+            Event::listen(AccessEvent::class, NotifyAccessEvent::class);
+        }
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'agent-access');
+        $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/agent-access')], 'agent-access-views');
+        if (config('agent-access.panel.enabled')) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/panel.php');
         }
     }
 }

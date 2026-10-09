@@ -50,6 +50,9 @@ final readonly class OperationDispatcher
         if ($operation === 'executions') {
             $rules += ['correlation_id' => 'nullable|string|max:128'];
         }
+        if (in_array($operation, ['requests', 'grants'], true)) {
+            $rules += ['pagination' => 'nullable|in:page,cursor', 'cursor' => 'nullable|string|max:4096'];
+        }
         $valid = $this->validation->make($input, $rules)->validate();
         $action = (string) ($valid['action'] ?? '');
         /** @var array<string, mixed> $arguments */
@@ -75,8 +78,12 @@ final readonly class OperationDispatcher
             'reject' => $this->approvals->reject($context, $id, $valid['reason'] ?? null)->toArray(),
             'cancel' => $this->requests->cancel($context, $id)->toArray(),
             'revoke' => $this->grants->revoke($context, $id)->toArray(),
-            'requests' => $this->queries->requests($context, (int) ($valid['page'] ?? 1), (int) ($valid['per_page'] ?? 20), $valid['status'] ?? null),
-            'grants' => $this->queries->grants($context, (int) ($valid['page'] ?? 1), (int) ($valid['per_page'] ?? 20)),
+            'requests' => ($valid['pagination'] ?? 'page') === 'cursor'
+                ? $this->queries->requestsCursor($context, (int) ($valid['per_page'] ?? 20), $valid['cursor'] ?? null, $valid['status'] ?? null)
+                : $this->queries->requests($context, (int) ($valid['page'] ?? 1), (int) ($valid['per_page'] ?? 20), $valid['status'] ?? null),
+            'grants' => ($valid['pagination'] ?? 'page') === 'cursor'
+                ? $this->queries->grantsCursor($context, (int) ($valid['per_page'] ?? 20), $valid['cursor'] ?? null)
+                : $this->queries->grants($context, (int) ($valid['page'] ?? 1), (int) ($valid['per_page'] ?? 20)),
             default => throw new \InvalidArgumentException('Unknown access operation.'),
         };
     }

@@ -25,9 +25,10 @@ The supported framework floor was raised to Laravel 12.69.0 / 13.30.0 after conf
 
 ## Suggested V0.2: administration and operations
 
-- Optional approval inbox and hierarchy/policy viewer in a host UI.
-- Queued notifications built on existing after-commit events; explicit application integration.
-- Cursor pagination or host visibility query adapters for large candidate sets.
+- Implemented as an opt-in preview: Blade approval inbox, request decisions, revocation and a separately authorized hierarchy/rule viewer.
+- Implemented: queued database notifications, explicit recipient resolver, delivery-time visibility checks and retry-safe storage.
+- Implemented: bounded, encrypted cursor scans across shared transports; exact total page mode remains compatible.
+- Remaining: a host visibility query adapter for exact totals over large datasets and application-specific query tuning.
 - Audit search/export, retention and operational monitoring with separate management authorization.
 - Broader real-host acceptance tests, including host-specific handlers beyond the verified Orders and native report-export flows.
 

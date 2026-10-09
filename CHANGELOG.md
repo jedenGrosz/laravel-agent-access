@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 — administration preview (unreleased)
+
+- Opt-in Blade approval inbox, request decisions, grant revocation and separately authorized hierarchy/rule viewer.
+- Queued database notifications with explicit host recipient selection, delivery-time identity/visibility checks and retry-safe UUIDs.
+- Encrypted principal/filter-bound cursor scans with bounded candidate reads through PHP, HTTP, MCP and Artisan.
+- Host view publication and notification/queue installation diagnostics; optional adapters remain disabled by default.
+
 ## 0.1.0
 
 - Public contract review: normalized arguments reach resource-less Gate abilities, inherited/trait condition sources participate in fingerprints, and an independent native-host export acceptance flow verifies both.

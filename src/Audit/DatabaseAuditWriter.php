@@ -25,10 +25,10 @@ final class DatabaseAuditWriter implements AuditWriter
                 $metadata['declared_'.$key] = substr($context->declaredMetadata[$key], 0, 128);
             }
         }
-        AuditEvent::query()->create(['event_type' => $event, 'actor_type' => $context->principal->type, 'actor_id' => $context->principal->id,
+        $record = AuditEvent::query()->create(['event_type' => $event, 'actor_type' => $context->principal->type, 'actor_id' => $context->principal->id,
             'request_id' => $safe['request_id'] ?? null, 'grant_id' => $safe['grant_id'] ?? null, 'execution_id' => $safe['execution_id'] ?? null,
             'channel' => $context->channel, 'correlation_id' => $context->correlationId, 'metadata' => $metadata]);
-        $notification = new AccessEvent($event, $context->correlationId, $safe);
+        $notification = new AccessEvent($event, $context->correlationId, $safe, $record->id);
         if (DB::transactionLevel() > 0) {
             DB::afterCommit(fn () => event($notification));
         } else {

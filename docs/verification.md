@@ -1,8 +1,16 @@
-# V0.1 verification
+# Candidate verification
 
-Verified on 2026-10-09. The current suite contains 98 tests. SQLite passes 435 assertions and skips the five independent-process database races. PostgreSQL 17 and MySQL 8.4 each pass all 98 tests with 479 assertions, including those races.
+## Administration preview
 
-The [RC2 checkpoint CI](https://github.com/jedenGrosz/laravel-agent-access/actions/runs/37986426246) passes all 12 jobs: the six PHP/Laravel pairs, both databases, both exact framework floors, the real Passport fixture and runtime-only fresh-host installation. Check the [latest CI run](https://github.com/jedenGrosz/laravel-agent-access/actions/workflows/ci.yml) and the local source candidate manifest for the final revision's results.
+Verified on 2026-10-09: 110 tests. SQLite passes 511 assertions and skips the five independent-process database races. PostgreSQL 17 and MySQL 8.4 each pass all 110 tests with 555 assertions. PHPStan 8, Pint, strict Composer validation and Composer audit pass.
+
+The new tests cover authenticated Blade rendering, escaped requester text, CSRF rejection/acceptance, role loss between display/submission, self-approval denial, explicit hierarchy inspection, notification enqueue after commit/absence on rollback, real database notification delivery and retry deduplication, recipient visibility/identity checks, and missing notification storage/async queue diagnostics. Cursor tests include cross-transport behavior, audience/filter/tamper enforcement, bounded hidden scans and a 2,001-request history served through one limited SQL window.
+
+The request detail/decision layout was inspected in a local browser using a rendered static snapshot with inert forms. This checks appearance; real mutation behavior is verified through the application's HTTP kernel tests. Fresh runtime-only consumer and real Passport acceptance flows pass after the administration changes.
+
+## V0.1 RC3 core checkpoint
+
+RC3's 98-test suite passes 435 SQLite assertions (five races skipped) and 479 assertions on each real database. The [RC3 CI](https://github.com/jedenGrosz/laravel-agent-access/actions/runs/37988717678) passes all 12 jobs. The local tag and archive remain that exact core revision. Administration additions are an optional unreleased V0.2 preview; check the [latest CI run](https://github.com/jedenGrosz/laravel-agent-access/actions/workflows/ci.yml) for the current source revision.
 
 ## Compatibility
 

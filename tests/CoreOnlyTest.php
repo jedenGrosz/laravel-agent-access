@@ -27,5 +27,6 @@ final class CoreOnlyTest extends TestCase
         self::assertFalse($this->app->getLoadedProviders()[McpServiceProvider::class] ?? false);
         self::assertFalse($this->app->getLoadedProviders()[PermissionServiceProvider::class] ?? false);
         $this->getJson('/agent-access/v1/requests')->assertNotFound();
+        $this->getJson('/agent-access/requests')->assertNotFound();
     }
 }

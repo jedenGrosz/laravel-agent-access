@@ -51,7 +51,8 @@ abstract class AccessOperationTool extends Tool
             return ['page' => $schema->integer()->min(1), 'per_page' => $schema->integer()->min(1)->max(100), 'correlation_id' => $schema->string()];
         }
         if (in_array($op, ['requests', 'grants'], true)) {
-            return ['page' => $schema->integer()->min(1), 'per_page' => $schema->integer()->min(1)->max(100), 'status' => $schema->string()->enum(['pending', 'approved', 'rejected', 'cancelled', 'expired'])];
+            return ['pagination' => $schema->string()->enum(['page', 'cursor']), 'cursor' => $schema->string(),
+                'page' => $schema->integer()->min(1), 'per_page' => $schema->integer()->min(1)->max(100), 'status' => $schema->string()->enum(['pending', 'approved', 'rejected', 'cancelled', 'expired'])];
         }
 
         return ['id' => $schema->string()->required(), 'reason' => $schema->string()];
