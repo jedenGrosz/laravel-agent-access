@@ -12,6 +12,7 @@ use Laravel\Sanctum\Sanctum;
 use LaravelAgentAccess\Actions\Action;
 use LaravelAgentAccess\Actions\ActionExecutor;
 use LaravelAgentAccess\Actions\ActionRegistry;
+use LaravelAgentAccess\Adapters\Mcp\Tools\ListExecutions;
 use LaravelAgentAccess\Adapters\Mcp\Tools\RunAction;
 use LaravelAgentAccess\Adapters\Mcp\Tools\ShowExecution;
 use LaravelAgentAccess\Approvals\ApprovalService;
@@ -25,6 +26,7 @@ use LaravelAgentAccess\Models\Grant;
 use LaravelAgentAccess\Requests\AccessRequestService;
 use LaravelAgentAccess\Requirements\AccessRequirement;
 use LaravelAgentAccess\Requirements\RequiresPermission;
+use Workbench\App\Mcp\RefundTool;
 
 final class ExecutionReceiptTest extends TestCase
 {
@@ -106,6 +108,7 @@ final class ExecutionReceiptTest extends TestCase
         $receipts = app(ExecutionReceiptService::class)->list($context, correlationId: $context->correlationId);
         self::assertSame(1, $receipts['total']);
         self::assertSame('FAILED', $receipts['data'][0]['status']);
+        self::assertTrue($receipts['data'][0]['requires_review']);
         self::assertSame(1, $grant->fresh()->uses);
         self::assertSame(1, DB::table('refunds')->count());
     }
@@ -155,6 +158,13 @@ final class ExecutionReceiptTest extends TestCase
         app(ExecutionReceiptService::class)->show($this->context(), $result->executionId);
     }
 
+    public function test_listing_does_not_merge_case_folded_identity_realms_on_mysql(): void
+    {
+        $result = app(ActionExecutor::class)->executeWithReceipt($this->context(), 'orders.view', ['order_id' => 431]);
+        AuditEvent::query()->where('execution_id', $result->executionId)->update(['actor_type' => 'USER']);
+        self::assertSame(0, app(ExecutionReceiptService::class)->list($this->context())['total']);
+    }
+
     public function test_http_mcp_and_artisan_return_and_read_receipts_through_shared_services(): void
     {
         Sanctum::actingAs($this->support);
@@ -179,5 +189,23 @@ final class ExecutionReceiptTest extends TestCase
         self::assertSame(1, app(ExecutionReceiptService::class)->list($context)['total']);
         self::assertSame(0, app(ExecutionReceiptService::class)->list($context, correlationId: $other->correlationId)['total']);
         self::assertSame(1, app(ExecutionReceiptService::class)->list($context, correlationId: $context->correlationId)['total']);
+    }
+
+    public function test_mcp_handler_failure_returns_safe_correlation_for_recovering_receipt(): void
+    {
+        $grant = $this->issue();
+        DB::table('refunds')->insert(['order_id' => 431, 'amount_minor' => 100, 'currency' => 'PLN']);
+        $this->actingAs($this->support);
+        $failed = (new RefundTool)->handle(new Request($this->args()));
+        $payload = json_decode((string) $failed->responses()->first()->content(), true);
+        self::assertTrue($failed->responses()->first()->isError());
+        self::assertSame('INTERNAL_ERROR', $payload['code']);
+        self::assertArrayHasKey('correlation_id', $payload);
+        self::assertStringNotContainsString('SQLSTATE', json_encode($payload));
+        $read = (new ListExecutions)->handle(new Request(['correlation_id' => $payload['correlation_id']]));
+        $receipts = json_decode((string) $read->responses()->first()->content(), true);
+        self::assertSame(1, $receipts['total']);
+        self::assertSame('FAILED', $receipts['data'][0]['status']);
+        self::assertSame(1, $grant->fresh()->uses);
     }
 }

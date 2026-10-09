@@ -22,6 +22,11 @@ final readonly class ExecutionReceiptService
         }
         $query = AuditEvent::query()->where('actor_type', $context->principal->type)->where('actor_id', $context->principal->id)
             ->whereNotNull('execution_id')->whereIn('event_type', ['ACTION_STARTED', 'ACCESS_CHECK_DENIED']);
+        if ($query->getModel()->getConnection()->getDriverName() === 'mysql') {
+            // MySQL's common case-insensitive collations must not merge distinct identity realms/IDs.
+            $query->whereRaw('CAST(actor_type AS BINARY) = ?', [$context->principal->type])
+                ->whereRaw('CAST(actor_id AS BINARY) = ?', [$context->principal->id]);
+        }
         if ($correlationId !== null) {
             $query->where('correlation_id', $correlationId);
         }
@@ -57,7 +62,7 @@ final readonly class ExecutionReceiptService
 
         return ['schema_version' => 1, 'code' => 'EXECUTION_RECEIPT', 'execution_id' => $executionId,
             'correlation_id' => $anchor->getAttribute('correlation_id'), 'status' => $status, 'admitted' => $started,
-            'requires_review' => $status === 'OUTCOME_UNKNOWN',
+            'requires_review' => in_array($status, ['OUTCOME_UNKNOWN', 'FAILED'], true),
             'action' => $metadata['action'] ?? null, 'permission' => $metadata['permission'] ?? null,
             'resource' => isset($metadata['resource_type']) ? ['type' => $metadata['resource_type'], 'id' => $metadata['resource_id'] ?? null] : null,
             'grant_id' => $anchor->getAttribute('grant_id'),

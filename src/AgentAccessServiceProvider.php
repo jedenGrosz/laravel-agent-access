@@ -47,7 +47,7 @@ final class AgentAccessServiceProvider extends ServiceProvider
         $this->app->booted(fn () => $this->app->make(ConfigurationValidator::class)->validate());
         if ($this->app->runningInConsole()) {
             $commands = [InstallCommand::class];
-            foreach (['validate', 'hierarchy', 'actions', 'check', 'simulate', 'run', 'execution', 'executions', 'request', 'requests', 'show', 'approve', 'reject', 'cancel', 'grants', 'revoke', 'expire'] as $operation) {
+            foreach (['validate', 'doctor', 'hierarchy', 'actions', 'check', 'simulate', 'run', 'execution', 'executions', 'request', 'requests', 'show', 'approve', 'reject', 'cancel', 'grants', 'revoke', 'expire'] as $operation) {
                 $commands[] = new ManagementCommand($operation);
             }
             $this->commands($commands);

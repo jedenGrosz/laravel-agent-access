@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaravelAgentAccess\Rules;
 
 use Illuminate\Contracts\Container\Container;
+use LaravelAgentAccess\Contracts\ExplainedGrantCondition;
 use LaravelAgentAccess\Contracts\RoleResolver;
 use LaravelAgentAccess\Identity\Principal;
 use LaravelAgentAccess\Requirements\AccessRequirement;
@@ -44,9 +45,17 @@ final readonly class GrantPolicy
             }
         }
         foreach ($rule->conditions as $index => $class) {
-            $allowed = $this->container->make($class)->requestable($target, $requirement, $constraints);
+            $condition = $this->container->make($class);
+            $allowed = $condition->requestable($target, $requirement, $constraints);
             $checks[] = ['check' => 'recipient_condition:'.($index + 1), 'allowed' => $allowed, 'reason_code' => $allowed ? 'SATISFIED' : 'CONDITION_NOT_MET'];
             if (! $allowed) {
+                if ($condition instanceof ExplainedGrantCondition) {
+                    $explanation = $condition->explainRequestable($target, $requirement, $constraints);
+                    $checks[count($checks) - 1] += ['condition_reason_code' => $explanation->code, 'reason' => $explanation->message];
+
+                    return new GrantPolicyDecision(false, 'CONDITION_NOT_MET', $checks, $explanation->message);
+                }
+
                 return new GrantPolicyDecision(false, 'CONDITION_NOT_MET', $checks);
             }
         }
@@ -76,9 +85,17 @@ final readonly class GrantPolicy
             return new GrantPolicyDecision(false, 'GRANTOR_ROLE_REQUIRED', $checks);
         }
         foreach ($rule->conditions as $index => $class) {
-            $allowed = $this->container->make($class)->allows($actor, $target, $requirement, $constraints);
+            $condition = $this->container->make($class);
+            $allowed = $condition->allows($actor, $target, $requirement, $constraints);
             $checks[] = ['check' => 'grantor_condition:'.($index + 1), 'allowed' => $allowed, 'reason_code' => $allowed ? 'SATISFIED' : 'CONDITION_NOT_MET'];
             if (! $allowed) {
+                if ($condition instanceof ExplainedGrantCondition) {
+                    $explanation = $condition->explain($actor, $target, $requirement, $constraints);
+                    $checks[count($checks) - 1] += ['condition_reason_code' => $explanation->code, 'reason' => $explanation->message];
+
+                    return new GrantPolicyDecision(false, 'CONDITION_NOT_MET', $checks, $explanation->message);
+                }
+
                 return new GrantPolicyDecision(false, 'CONDITION_NOT_MET', $checks);
             }
         }

@@ -2,6 +2,8 @@
 
 ## 0.1.0
 
+- Package vendor selected as jedengrosz; public business-condition explanations, installation doctor and runtime-only consumer CI.
+- MCP failures retain safe correlation IDs for receipt lookup; MySQL receipt queries preserve case-sensitive identities.
 - Execution receipt envelopes and authorized read/list APIs across PHP, HTTP, MCP and Artisan; uncertain outcomes remain read-only.
 - Public action discovery, SQL candidate filtering with full final visibility policies and additive lookup indexes.
 - Artisan list operations work without an explicit JSON input option.

@@ -12,6 +12,7 @@ use LaravelAgentAccess\Exceptions\AccessException;
 use LaravelAgentAccess\Grants\ExpirationService;
 use LaravelAgentAccess\Identity\ExecutionContext;
 use LaravelAgentAccess\Identity\PrincipalDirectory;
+use LaravelAgentAccess\InstallationDoctor;
 use LaravelAgentAccess\Rules\RoleHierarchy;
 
 final class ManagementCommand extends Command
@@ -26,6 +27,18 @@ final class ManagementCommand extends Command
     public function handle(): int
     {
         try {
+            if ($this->operation === 'doctor') {
+                $report = app(InstallationDoctor::class)->check();
+                if ($this->option('json')) {
+                    $this->line(json_encode($report, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+                } else {
+                    foreach ($report['checks'] as $check) {
+                        $this->line(($check['passed'] ? 'PASS ' : 'FAIL ').$check['check'].' '.$check['reason_code']);
+                    }
+                }
+
+                return $report['healthy'] ? self::SUCCESS : self::FAILURE;
+            }
             if ($this->operation === 'hierarchy') {
                 $hierarchy = app(RoleHierarchy::class);
                 if ($this->option('json')) {

@@ -1,6 +1,6 @@
 # Local V0.1 release candidate
 
-V0.1 preparation stays local. The Composer vendor is provisional; Packagist publication and a public repository are separate release decisions.
+V0.1 preparation stays local. The package name is jedengrosz/laravel-agent-access. Source is tracked on GitHub; Packagist publication remains a separate distribution step.
 
 ## Reproduce the checks
 
@@ -16,7 +16,7 @@ docker compose run --rm -e LAA_DB_CONNECTION=mysql -e DB_HOST=mysql -e DB_PORT=3
 
 The SQLite suite skips the five independent-process race tests. The database runs require all tests, including idempotent request creation, simultaneous approval, one-use execution, approve/cancel and revoke/admission races. Test containers use their own databases. The GitHub workflow repeats PHP 8.3/8.4/8.5 with Laravel 12/13 and both real databases when run in a remote repository.
 
-Test a new host with runtime dependencies only; optional integrations must not be installed solely to boot the core. Use a Composer path repository pointing at this checkout, require `laravel-agent-access/laravel-agent-access:@dev`, publish, configure, validate and migrate. The independent smoke scenario is available as:
+Test a new host with runtime dependencies only; optional integrations must not be installed solely to boot the core. Use a Composer path repository pointing at this checkout, require `jedengrosz/laravel-agent-access:@dev`, publish, configure, validate and migrate. The independent smoke scenario is available as:
 
 ```sh
 php tests/Support/fresh-consumer-smoke.php /absolute/path/to/isolated/laravel-app
@@ -58,4 +58,4 @@ git archive --format=zip --prefix=laravel-agent-access/ --output=/absolute/outpu
 - Visibility filtering evaluates PHP policies while scanning candidates; large hosts may need query optimization.
 - Passport integration uses existing host authentication. A separate disposable host verifies OAuth discovery, consent, PKCE and real-token HTTP/MCP execution.
 
-See [verification evidence](verification.md) for the local compatibility and integration checks. Public distribution should be based on a separately chosen vendor/repository after reviewing this source candidate.
+See [verification evidence](verification.md) for the local compatibility and integration checks. Public distribution uses jedengrosz/laravel-agent-access after reviewing the source candidate.

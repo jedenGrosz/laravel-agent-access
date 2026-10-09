@@ -40,6 +40,12 @@ final class HierarchyTest extends TestCase
         self::assertSame(0, $graph->distance('0', '0'));
     }
 
+    public function test_relatives_with_equal_distance_are_sorted_across_different_parent_branches(): void
+    {
+        $graph = new RoleHierarchy([['root', 'a'], ['root', 'b'], ['a', 'z'], ['b', 'c']]);
+        self::assertSame(['a', 'b', 'c', 'z'], $graph->descendants('root'));
+    }
+
     #[DataProvider('invalidGraphs')]
     public function test_invalid_configuration_is_rejected(array $edges): void
     {

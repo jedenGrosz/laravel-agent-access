@@ -29,7 +29,7 @@ Individual receipt reads permit the owner or an actor explicitly authorized by t
 | `FAILED` | Admission and a terminal handler failure event are recorded; the grant remains consumed. |
 | `OUTCOME_UNKNOWN` | Admission exists without a durable terminal event; inspect business state. |
 
-`OUTCOME_UNKNOWN` may represent an in-progress handler, process crash or result-audit failure. It is not proof that the handler did nothing. `requires_review` is true for this state. Receipt reads never retry, resume, consume or restore access. A success event records that the handler returned; it does not guarantee exactly-once effects in an external system.
+`OUTCOME_UNKNOWN` may represent an in-progress handler, process crash or result-audit failure. It is not proof that the handler did nothing. `FAILED` records a thrown exception and also cannot prove that external effects were rolled back. `requires_review` is true for both states. Receipt reads never retry, resume, consume or restore access. A success event records that the handler returned; it does not guarantee exactly-once effects in an external system.
 
 Receipts expose event types/times, safe action/permission/resource references and the grant ID. They omit payloads, argument values, handler results, credentials, exception details and other user records. Older audit rows may have null action/resource metadata; history is not rewritten.
 

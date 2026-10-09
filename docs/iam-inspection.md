@@ -21,6 +21,8 @@ The human presentation marks repeated nodes as `[shared]`; JSON preserves the co
 
 Checks cover permission, recipient role, duration, resource scope, uses, bound arguments, distinct actor, grantor role and business conditions. Condition identifiers are positional (`recipient_condition:1`, `grantor_condition:1`) rather than PHP class names. No argument values or user records are included in the trace. Conditions and IAM adapters must be read-only checks; exceptions fail closed.
 
+Optionally implement `ExplainedGrantCondition` to supply a `ConditionExplanation` after a failed recipient/actor condition. It requires a stable uppercase public code and a message of at most 250 characters. The outer `CONDITION_NOT_MET` code is preserved; the failed check additionally includes `condition_reason_code` and `reason`. The Orders example reports `DEPARTMENT_MISMATCH` without naming either person's department. Existing boolean conditions keep their generic explanation. Hosts must supply public descriptions rather than raw exceptions or private values.
+
 Public access decisions also include a human-readable `reason` alongside their stable reason code. Existing decision fields remain available.
 
 ## Simulate without issuing access

@@ -1,5 +1,9 @@
 # V0.1 verification
 
+Latest local candidate: 92 tests, 393 SQLite assertions (five independent-process races skipped), and 437 assertions with all tests passing on PostgreSQL 17 and MySQL 8.4. Includes public business-condition explanations, installation diagnostics and MySQL case-sensitive identity checks for receipt listing. Consumer and Passport fixtures install the selected `jedengrosz/laravel-agent-access` package name.
+
+GitHub CI for the execution-receipt checkpoint is green: [run 37981157892](https://github.com/jedenGrosz/laravel-agent-access/actions/runs/37981157892). A runtime-only fresh-consumer CI job was added alongside Passport and the compatibility/database matrix.
+
 GitHub CI for the catalog/query checkpoint passes all 11 jobs, including the six PHP/Laravel pairs, PostgreSQL/MySQL, two exact framework floors and Passport OAuth: [run 37980136374](https://github.com/jedenGrosz/laravel-agent-access/actions/runs/37980136374).
 
 Current catalog/query checkpoint: 77 tests, 316 SQLite assertions (five races skipped), and 360 assertions with all tests passing on both PostgreSQL 17 and MySQL 8.4. All six PHP 8.3/8.4/8.5 and Laravel 12/13 combinations pass. The new lookup migration is tested through rollback/reapply with an existing grant.

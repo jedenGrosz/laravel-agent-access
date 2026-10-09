@@ -109,16 +109,20 @@ final readonly class RoleHierarchy
     {
         $queue = [$role];
         $seen = [$role => true];
+        $distance = [$role => 0];
         $result = [];
         for ($index = 0; $index < count($queue); $index++) {
             foreach ($graph[$queue[$index]] ?? [] as $node) {
                 if (! isset($seen[$node])) {
                     $seen[$node] = true;
+                    $distance[$node] = $distance[$queue[$index]] + 1;
                     $queue[] = $node;
                     $result[] = $node;
                 }
             }
         }
+
+        usort($result, fn (string $a, string $b): int => ($distance[$a] <=> $distance[$b]) ?: strcmp($a, $b));
 
         return $result;
     }

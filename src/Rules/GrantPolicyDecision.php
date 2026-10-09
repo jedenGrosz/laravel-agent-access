@@ -6,11 +6,15 @@ namespace LaravelAgentAccess\Rules;
 
 final readonly class GrantPolicyDecision
 {
-    /** @param list<array{check: string, allowed: bool, reason_code: string}> $checks */
-    public function __construct(public bool $allowed, public string $reasonCode, public array $checks = []) {}
+    /** @param list<array{check: string, allowed: bool, reason_code: string, condition_reason_code?: string, reason?: string}> $checks */
+    public function __construct(public bool $allowed, public string $reasonCode, public array $checks = [], private ?string $publicReason = null) {}
 
     public function reason(): string
     {
+        if ($this->publicReason !== null) {
+            return $this->publicReason;
+        }
+
         return match ($this->reasonCode) {
             'GRANT_ALLOWED' => 'The actor satisfies this complete grant rule.',
             'REQUEST_ELIGIBLE' => 'The recipient and proposed constraints satisfy this grant rule.',

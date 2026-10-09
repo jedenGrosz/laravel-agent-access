@@ -1,5 +1,5 @@
 {
-  "name": "laravel-agent-access/laravel-agent-access",
+  "name": "jedengrosz/laravel-agent-access",
   "description": "Explainable, controlled privilege grants for agents acting on behalf of Laravel users.",
   "type": "library",
   "license": "MIT",

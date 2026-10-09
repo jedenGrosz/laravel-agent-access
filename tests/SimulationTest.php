@@ -72,6 +72,8 @@ final class SimulationTest extends TestCase
         Gate::define('agent_access.inspect', fn () => true);
         $condition = $this->simulate();
         self::assertSame('CONDITION_NOT_MET', $condition['reason_code']);
+        self::assertSame('DEPARTMENT_MISMATCH', Arr::last($condition['grant_authority']['checks'])['condition_reason_code']);
+        self::assertSame('The grantor and recipient must belong to the same department.', $condition['reason']);
         self::assertSame('grantor_condition:1', Arr::last($condition['grant_authority']['checks'])['check']);
         self::assertStringNotContainsString('SameDepartment', json_encode($condition));
         self::assertStringNotContainsString($this->support->email, json_encode($condition));

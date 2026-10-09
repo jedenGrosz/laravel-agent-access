@@ -14,6 +14,7 @@ use Laravel\Mcp\Server\Tool;
 use LaravelAgentAccess\Adapters\OperationDispatcher;
 use LaravelAgentAccess\Exceptions\AccessException;
 use LaravelAgentAccess\Identity\ContextFactory;
+use LaravelAgentAccess\Identity\ExecutionContext;
 
 abstract class AgentAccessTool extends Tool
 {
@@ -28,6 +29,7 @@ abstract class AgentAccessTool extends Tool
      * @param array<string, mixed> $arguments */
     protected function invoke(Request $request, string $operation, array $arguments): ResponseFactory
     {
+        $context = null;
         try {
             $context = app(ContextFactory::class)->authenticated($request->user(), 'mcp', $request->meta() ?? []);
 
@@ -35,14 +37,19 @@ abstract class AgentAccessTool extends Tool
         } catch (AccessException $e) {
             return $this->failure($e->toArray());
         } catch (ValidationException) {
-            return Response::make(Response::error('INVALID_ARGUMENTS'))->withStructuredContent(['schema_version' => 1, 'code' => 'INVALID_ARGUMENTS']);
+            return $this->error('INVALID_ARGUMENTS', $context);
         } catch (ModelNotFoundException) {
-            return Response::make(Response::error('RESOURCE_NOT_FOUND'))->withStructuredContent(['schema_version' => 1, 'code' => 'RESOURCE_NOT_FOUND']);
+            return $this->error('RESOURCE_NOT_FOUND', $context);
         } catch (AuthenticationException) {
-            return Response::make(Response::error('UNAUTHENTICATED'))->withStructuredContent(['schema_version' => 1, 'code' => 'UNAUTHENTICATED']);
+            return $this->error('UNAUTHENTICATED', $context);
         } catch (\Throwable) {
-            return Response::make(Response::error('INTERNAL_ERROR'))->withStructuredContent(['schema_version' => 1, 'code' => 'INTERNAL_ERROR']);
+            return $this->error('INTERNAL_ERROR', $context);
         }
+    }
+
+    private function error(string $code, ?ExecutionContext $context): ResponseFactory
+    {
+        return $this->failure(array_filter(['schema_version' => 1, 'code' => $code, 'correlation_id' => $context?->correlationId], fn ($value) => $value !== null));
     }
 
     /** @param array<string, mixed> $payload */

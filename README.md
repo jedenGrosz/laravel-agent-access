@@ -4,7 +4,7 @@ Controlled, explainable privilege grants for agents acting on behalf of authenti
 
 The existing IAM defines roles, permissions and baseline access. This package adds explicit grant authority, scoped grants, approval requests and a database audit trail. PHP, HTTP, MCP and Artisan use the same application services. No external IAM service or LLM decision is required.
 
-**Local V0.1 package; not published on Packagist.** PHP 8.3+, Laravel 12.69.0+/13.30.0+. MCP and Spatie are optional integrations.
+**V0.1 release candidate; not published on Packagist.** PHP 8.3+, Laravel 12.69.0+/13.30.0+. MCP and Spatie are optional integrations.
 
 Start with the [host integration guide](docs/integration.md) for native Gate, Spatie, Sanctum, MCP and existing Passport. Local release preparation is described in [the release guide](docs/release.md).
 
@@ -13,6 +13,8 @@ See [IAM inspection](docs/iam-inspection.md) for hierarchy navigation, ranked gr
 The [action catalog](docs/action-catalog.md) documents action discovery and visibility query filtering. Minimum Laravel versions include upstream security fixes; see [compatibility verification](docs/verification.md).
 
 Use [execution receipts](docs/execution-receipts.md) to retrieve durable admission/outcome evidence without retrying an action. The optional `run` operation returns a receipt envelope while existing `execute` keeps its result shape.
+
+Use [installation diagnostics](docs/installation-doctor.md) to check a host's schema without changing it. The [roadmap](docs/roadmap.md) separates candidate functionality from public-release tasks and later IAM extensions.
 
 ## Run the Orders demo
 
@@ -36,7 +38,7 @@ Use the support token for `/agent-access/v1` or `/mcp`, and the manager token fo
 
 ## Install into a host application
 
-Until publication, configure a Composer path repository pointing to this checkout and require `laravel-agent-access/laravel-agent-access` with `@dev`. The public vendor is provisional.
+Until publication, configure a Composer path repository pointing to this checkout and require `jedengrosz/laravel-agent-access` with `@dev`. The Composer vendor is jedengrosz.
 
 ```sh
 php artisan agent-access:install
