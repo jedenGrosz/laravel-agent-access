@@ -1,0 +1,1 @@
+{"preset":"laravel","exclude":["vendor",".test-results",".phpunit.cache",".phpstan-cache"]}

@@ -1,0 +1,38 @@
+name: laravel-agent-access-tests
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: agent_access
+      POSTGRES_USER: agent_access
+      POSTGRES_PASSWORD: local-test-only
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U agent_access"]
+      interval: 2s
+      retries: 30
+    tmpfs: /var/lib/postgresql/data
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: agent_access
+      MYSQL_USER: agent_access
+      MYSQL_PASSWORD: local-test-only
+      MYSQL_ROOT_PASSWORD: local-root-test-only
+    healthcheck:
+      test: [CMD-SHELL, "mysqladmin ping -h localhost -u root -plocal-root-test-only"]
+      interval: 2s
+      retries: 60
+    tmpfs: /var/lib/mysql
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: [test]
+    volumes: [".:/app"]
+    environment:
+      LAA_DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: agent_access
+      DB_USERNAME: agent_access
+      DB_PASSWORD: local-test-only

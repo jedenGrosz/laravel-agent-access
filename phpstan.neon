@@ -1,0 +1,11 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+parameters:
+    level: 8
+    paths:
+        - src
+    tmpDir: .phpstan-cache
+    parallel:
+        maximumNumberOfProcesses: 1
+    scanDirectories:
+        - workbench/app
