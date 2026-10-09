@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace LaravelAgentAccess\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $event_type
- * @property array<string, mixed> $metadata */
+ * @property array<string, mixed> $metadata
+ * @property Carbon|null $created_at
+ */
 final class AuditEvent extends AccessModel
 {
     use HasUlids;

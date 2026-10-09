@@ -14,7 +14,8 @@ final class DatabaseAuditWriter implements AuditWriter
 {
     public function record(string $event, ExecutionContext $context, array $references = []): void
     {
-        $safe = array_intersect_key($references, array_flip(['request_id', 'grant_id', 'execution_id', 'rule_id', 'reason_code', 'source']));
+        $safe = array_intersect_key($references, array_flip(['request_id', 'grant_id', 'execution_id', 'rule_id', 'reason_code', 'source',
+            'action', 'permission', 'resource_type', 'resource_id']));
         $metadata = array_diff_key($safe, array_flip(['request_id', 'grant_id', 'execution_id']));
         foreach (['client_id', 'session_id'] as $key) {
             if (isset($context->trustedMetadata[$key])) {

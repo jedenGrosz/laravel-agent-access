@@ -12,6 +12,8 @@ See [IAM inspection](docs/iam-inspection.md) for hierarchy navigation, ranked gr
 
 The [action catalog](docs/action-catalog.md) documents action discovery and visibility query filtering. Minimum Laravel versions include upstream security fixes; see [compatibility verification](docs/verification.md).
 
+Use [execution receipts](docs/execution-receipts.md) to retrieve durable admission/outcome evidence without retrying an action. The optional `run` operation returns a receipt envelope while existing `execute` keeps its result shape.
+
 ## Run the Orders demo
 
 ```sh

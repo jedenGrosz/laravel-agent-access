@@ -2,6 +2,7 @@
 
 ## 0.1.0
 
+- Execution receipt envelopes and authorized read/list APIs across PHP, HTTP, MCP and Artisan; uncertain outcomes remain read-only.
 - Public action discovery, SQL candidate filtering with full final visibility policies and additive lookup indexes.
 - Artisan list operations work without an explicit JSON input option.
 - Minimum framework constraints raised to Laravel 12.69.0 / 13.30.0 after verifying upstream advisories; dedicated minimum-version CI jobs.

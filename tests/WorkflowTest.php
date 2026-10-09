@@ -24,6 +24,7 @@ final class WorkflowTest extends TestCase
         $request = app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
         $grant = app(ApprovalService::class)->approve($this->context($this->manager), $request->id);
         self::assertSame(0, $grant->uses);
+        self::assertTrue($grant->expires_at->equalTo($grant->valid_from->addSeconds($grant->duration_seconds)));
         self::assertTrue(app(DecisionService::class)->check($this->context(), 'orders.refund', $this->args())->allowed);
         self::assertSame(0, $grant->fresh()->uses);
         $result = app(ActionExecutor::class)->execute($this->context(), 'orders.refund', $this->args());

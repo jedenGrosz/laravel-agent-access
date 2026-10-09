@@ -33,7 +33,7 @@ abstract class AccessOperationTool extends Tool
         if ($op === 'actions') {
             return [];
         }
-        if (in_array($op, ['check', 'request', 'simulate'], true)) {
+        if (in_array($op, ['check', 'run', 'request', 'simulate'], true)) {
             $fields = ['action' => $schema->string()->required(), 'arguments' => $schema->object()->required()];
             if ($op === 'request') {
                 $fields += ['rule_id' => $schema->string(), 'duration_seconds' => $schema->integer()->min(1),
@@ -46,6 +46,9 @@ abstract class AccessOperationTool extends Tool
             }
 
             return $fields;
+        }
+        if ($op === 'executions') {
+            return ['page' => $schema->integer()->min(1), 'per_page' => $schema->integer()->min(1)->max(100), 'correlation_id' => $schema->string()];
         }
         if (in_array($op, ['requests', 'grants'], true)) {
             return ['page' => $schema->integer()->min(1), 'per_page' => $schema->integer()->min(1)->max(100), 'status' => $schema->string()->enum(['pending', 'approved', 'rejected', 'cancelled', 'expired'])];

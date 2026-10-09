@@ -18,7 +18,7 @@ final class AccessException extends \RuntimeException
      * @return array<string, mixed> */
     public function toArray(): array
     {
-        return $this->decision?->toArray() ?? array_filter(['schema_version' => 1, 'code' => $this->reasonCode,
-            'execution_id' => $this->executionId, 'correlation_id' => $this->correlationId], fn ($value) => $value !== null);
+        return ($this->decision?->toArray() ?? ['schema_version' => 1, 'code' => $this->reasonCode]) +
+            array_filter(['execution_id' => $this->executionId, 'correlation_id' => $this->correlationId], fn ($value) => $value !== null);
     }
 }

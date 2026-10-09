@@ -57,7 +57,7 @@ final class CatalogQueryTest extends TestCase
         $request = app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
         $grant = app(ApprovalService::class)->approve($this->context($this->manager), $request->id);
         self::assertTrue(Schema::hasIndex('agent_access_grants', 'laa_grant_resource'));
-        $this->artisan('migrate:rollback', ['--step' => 1, '--force' => true])->assertSuccessful();
+        $this->artisan('migrate:rollback', ['--step' => 2, '--force' => true])->assertSuccessful();
         self::assertFalse(Schema::hasIndex('agent_access_grants', 'laa_grant_resource'));
         self::assertSame($grant->id, $grant->fresh()->id);
         $this->artisan('migrate', ['--force' => true])->assertSuccessful();

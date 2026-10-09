@@ -1,5 +1,7 @@
 # V0.1 verification
 
+GitHub CI for the catalog/query checkpoint passes all 11 jobs, including the six PHP/Laravel pairs, PostgreSQL/MySQL, two exact framework floors and Passport OAuth: [run 37980136374](https://github.com/jedenGrosz/laravel-agent-access/actions/runs/37980136374).
+
 Current catalog/query checkpoint: 77 tests, 316 SQLite assertions (five races skipped), and 360 assertions with all tests passing on both PostgreSQL 17 and MySQL 8.4. All six PHP 8.3/8.4/8.5 and Laravel 12/13 combinations pass. The new lookup migration is tested through rollback/reapply with an existing grant.
 
 The original Laravel 12.41.1 floor could not be installed by Composer because of upstream advisories. The supported framework floor is now 12.69.0 / 13.30.0, matching the patched ranges in [Laravel's advisory](https://github.com/laravel/framework/security/advisories/GHSA-jh5r-qr3c-85q8). No advisory block was disabled or ignored. Separate exact-floor CI jobs are defined alongside the current-version matrix.

@@ -67,11 +67,12 @@ final readonly class ApprovalService
             }
             $grant = null;
             if ($decision === 'approved') {
+                $issuedAt = CarbonImmutable::now('UTC');
                 $grant = Grant::query()->create(['request_id' => $id, 'principal_type' => $request->principal_type, 'principal_id' => $request->principal_id,
                     'action' => $request->action, 'permission' => $request->permission, 'resource_type' => $request->resource_type, 'resource_id' => $request->resource_id,
                     'bound_arguments' => $request->bound_arguments, 'rule_id' => $request->rule_id, 'rule_fingerprint' => $request->rule_fingerprint,
                     'duration_seconds' => $request->duration_seconds, 'max_uses' => $request->max_uses, 'uses' => 0,
-                    'valid_from' => CarbonImmutable::now('UTC'), 'expires_at' => CarbonImmutable::now('UTC')->addSeconds($request->duration_seconds),
+                    'valid_from' => $issuedAt, 'expires_at' => $issuedAt->addSeconds($request->duration_seconds),
                     'grantor_type' => $context->principal->type, 'grantor_id' => $context->principal->id]);
             }
             Approval::query()->create(['request_id' => $id, 'actor_type' => $context->principal->type, 'actor_id' => $context->principal->id, 'decision' => $decision, 'reason' => $reason]);
