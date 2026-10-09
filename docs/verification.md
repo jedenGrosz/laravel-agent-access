@@ -6,6 +6,8 @@ Verified on 2026-10-09: 110 tests. SQLite passes 511 assertions and skips the fi
 
 The new tests cover authenticated Blade rendering, escaped requester text, CSRF rejection/acceptance, role loss between display/submission, self-approval denial, explicit hierarchy inspection, notification enqueue after commit/absence on rollback, real database notification delivery and retry deduplication, recipient visibility/identity checks, and missing notification storage/async queue diagnostics. Cursor tests include cross-transport behavior, audience/filter/tamper enforcement, bounded hidden scans and a 2,001-request history served through one limited SQL window.
 
+The first administration CI run passed its PHP/framework, minimum-version, Passport and core-consumer jobs, but database initialization hit Docker Hub's anonymous pull quota before tests started. Database jobs now use the [Docker Official Images mirror in ECR Public](https://aws.amazon.com/blogs/containers/docker-official-images-now-available-on-amazon-elastic-container-registry-public/), with verified PostgreSQL 17 and MySQL 8.4 manifests. Each matrix job starts only its selected service and database failures no longer cancel the other engine's checks.
+
 The request detail/decision layout was inspected in a local browser using a rendered static snapshot with inert forms. This checks appearance; real mutation behavior is verified through the application's HTTP kernel tests. Fresh runtime-only consumer and real Passport acceptance flows pass after the administration changes.
 
 ## V0.1 RC3 core checkpoint
