@@ -35,24 +35,31 @@ final readonly class ActionExecutor
             $this->audit->record('ACCESS_CHECK_DENIED', $context, ['execution_id' => $executionId, 'reason_code' => $decision->reasonCode]);
             throw new AccessException('ACCESS_DENIED', 403, $decision);
         }
-        DB::transaction(function () use ($context, $action, $arguments, $decision, $executionId, &$requirement): void {
-            $locked = $decision->grantId === null ? null : Grant::query()->lockForUpdate()->find($decision->grantId);
-            $requirement = $this->requirements->resolve($action, $arguments);
-            $fresh = $this->decisions->evaluate($context, $requirement);
-            if (! $fresh->allowed) {
-                throw new AccessException('ACCESS_DENIED', 403, $fresh);
-            }
-            if ($fresh->source === 'grant') {
-                if ($locked === null || $locked->id !== $fresh->grantId || ! $this->grants->matches($locked, $context, $requirement)) {
-                    throw new AccessException('GRANT_UNAVAILABLE', 409);
+        try {
+            DB::transaction(function () use ($context, $action, $arguments, $decision, $executionId, &$requirement): void {
+                $locked = $decision->grantId === null ? null : Grant::query()->lockForUpdate()->find($decision->grantId);
+                $requirement = $this->requirements->resolve($action, $arguments);
+                $fresh = $this->decisions->evaluate($context, $requirement);
+                if (! $fresh->allowed) {
+                    throw new AccessException('ACCESS_DENIED', 403, $fresh);
                 }
-                $locked->uses++;
-                $locked->save();
-                GrantUse::query()->create(['grant_id' => $locked->id, 'execution_id' => $executionId, 'principal_type' => $context->principal->type, 'principal_id' => $context->principal->id]);
-                $this->audit->record('GRANT_USED', $context, ['grant_id' => $locked->id, 'execution_id' => $executionId]);
-            }
-            $this->audit->record('ACTION_STARTED', $context, ['grant_id' => $fresh->grantId, 'execution_id' => $executionId, 'source' => $fresh->source]);
-        });
+                if ($fresh->source === 'grant') {
+                    if ($locked === null || $locked->id !== $fresh->grantId || ! $this->grants->matches($locked, $context, $requirement)) {
+                        throw new AccessException('GRANT_UNAVAILABLE', 409);
+                    }
+                    $locked->uses++;
+                    $locked->save();
+                    GrantUse::query()->create(['grant_id' => $locked->id, 'execution_id' => $executionId, 'principal_type' => $context->principal->type, 'principal_id' => $context->principal->id]);
+                    $this->audit->record('GRANT_USED', $context, ['grant_id' => $locked->id, 'execution_id' => $executionId]);
+                }
+                $this->audit->record('ACTION_STARTED', $context, ['grant_id' => $fresh->grantId, 'execution_id' => $executionId, 'source' => $fresh->source]);
+            });
+        } catch (AccessException $exception) {
+            // The admission transaction rolled back; persist the denial outside it.
+            $this->audit->record('ACCESS_CHECK_DENIED', $context, ['execution_id' => $executionId,
+                'reason_code' => $exception->decision->reasonCode ?? $exception->reasonCode]);
+            throw $exception;
+        }
         try {
             $result = $this->actions->get($action)->handle($context, $requirement);
         } catch (\Throwable $exception) {

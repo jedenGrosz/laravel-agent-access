@@ -34,6 +34,7 @@ final readonly class DecisionService
 
     public function evaluate(ExecutionContext $context, AccessRequirement $requirement): AccessDecision
     {
+        $context->principal->refresh();
         $baseline = $this->iam->evaluate($context->principal, $requirement);
         if ($baseline->outcome === IamOutcome::Allow) {
             return new AccessDecision(true, 'BASE_PERMISSION', $requirement, $context->correlationId, 'iam');
@@ -51,7 +52,9 @@ final readonly class DecisionService
                 continue;
             }
             $defaults = new GrantConstraints(min((int) config('agent-access.grants.default_ttl', 900), $rule->maximumDuration,
-                (int) config('agent-access.grants.max_ttl', 86400)), (int) config('agent-access.grants.default_uses', 1));
+                (int) config('agent-access.grants.max_ttl', 86400)), $rule->maximumUses === null
+                    ? (int) config('agent-access.grants.default_uses', 1)
+                    : min((int) config('agent-access.grants.default_uses', 1), $rule->maximumUses));
             if ($this->policy->requestable($context->principal, $requirement, $defaults, $rule)) {
                 $options[] = ['rule_id' => $rule->id, 'eligible_grantor_roles' => $rule->grantorRoles,
                     'max_duration_seconds' => min($rule->maximumDuration, (int) config('agent-access.grants.max_ttl', 86400)),

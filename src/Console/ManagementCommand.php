@@ -6,15 +6,13 @@ namespace LaravelAgentAccess\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Validation\ValidationException;
-use LaravelAgentAccess\Actions\ActionRegistry;
 use LaravelAgentAccess\Adapters\OperationDispatcher;
+use LaravelAgentAccess\ConfigurationValidator;
 use LaravelAgentAccess\Exceptions\AccessException;
 use LaravelAgentAccess\Grants\ExpirationService;
 use LaravelAgentAccess\Identity\ExecutionContext;
 use LaravelAgentAccess\Identity\PrincipalDirectory;
-use LaravelAgentAccess\Requirements\RequirementResolver;
 use LaravelAgentAccess\Rules\RoleHierarchy;
-use LaravelAgentAccess\Rules\RuleRegistry;
 
 final class ManagementCommand extends Command
 {
@@ -34,25 +32,8 @@ final class ManagementCommand extends Command
                 return self::SUCCESS;
             }
             if ($this->operation === 'validate') {
-                $rules = app(RuleRegistry::class)->all();
-                $actions = app(ActionRegistry::class)->all();
                 app(RoleHierarchy::class);
-                foreach ($rules as $rule) {
-                    $matched = false;
-                    foreach ($actions as $action) {
-                        $attribute = app(RequirementResolver::class)->attribute($action->key());
-                        if ($attribute->permission !== $rule->permission) {
-                            continue;
-                        }
-                        $matched = true;
-                        if (array_diff($rule->boundArguments, $action->bindableArguments()) !== []) {
-                            throw new \LogicException('Rule bindings are not declared by the action: '.$rule->id);
-                        }
-                    }
-                    if (! $matched) {
-                        throw new \LogicException('Rule has no registered action: '.$rule->id);
-                    }
-                }
+                app(ConfigurationValidator::class)->validate();
                 $this->info('Agent Access configuration is valid.');
 
                 return self::SUCCESS;

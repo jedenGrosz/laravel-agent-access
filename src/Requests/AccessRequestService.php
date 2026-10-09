@@ -18,6 +18,7 @@ use LaravelAgentAccess\Models\AccessRequest;
 use LaravelAgentAccess\Requirements\RequirementResolver;
 use LaravelAgentAccess\Rules\GrantConstraints;
 use LaravelAgentAccess\Rules\GrantPolicy;
+use LaravelAgentAccess\Rules\GrantUses;
 use LaravelAgentAccess\Rules\RuleRegistry;
 use LaravelAgentAccess\Support\CanonicalJson;
 
@@ -29,12 +30,13 @@ final readonly class AccessRequestService
     /**
      * @param array<string, mixed> $arguments */
     public function create(ExecutionContext $context, string $action, array $arguments, ?string $ruleId = null,
-        ?int $durationSeconds = null, ?int $maxUses = 1, ?string $reason = null, ?string $idempotencyKey = null): AccessRequest
+        ?int $durationSeconds = null, int|GrantUses|null $maxUses = GrantUses::Default, ?string $reason = null, ?string $idempotencyKey = null): AccessRequest
     {
         if (($reason !== null && mb_strlen($reason) > 500) || ($idempotencyKey !== null && ($idempotencyKey === '' || strlen($idempotencyKey) > 128))) {
             throw new AccessException('INVALID_REQUEST', 422);
         }
         $requirement = $this->requirements->resolve($action, $arguments);
+        $maxUses = $maxUses === GrantUses::Default ? (int) config('agent-access.grants.default_uses', 1) : $maxUses;
         $hashArgs = $requirement->arguments;
         ksort($hashArgs);
         $hash = hash('sha256', CanonicalJson::encode([$action, $hashArgs, $ruleId, $durationSeconds, $maxUses, $reason]));

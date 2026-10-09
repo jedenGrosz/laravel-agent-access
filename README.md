@@ -6,6 +6,8 @@ The existing IAM defines roles, permissions and baseline access. This package ad
 
 **Local V0.1 package; not published on Packagist.** PHP 8.3+, Laravel 12.41.1+/13. MCP and Spatie are optional integrations.
 
+Start with the [host integration guide](docs/integration.md) for native Gate, Spatie, Sanctum, MCP and existing Passport. Local release preparation is described in [the release guide](docs/release.md).
+
 ## Run the Orders demo
 
 ```sh
@@ -134,6 +136,7 @@ A permission's use authority and grant authority are independent. Self approval 
 A grant combines action, permission, principal, resource, valid interval, optional usage limit and selected argument bindings. These are independent restrictions, not exclusive grant types.
 
 - Defaults: grant TTL 900 seconds, maximum TTL 86400 seconds, pending-request TTL 3600 seconds, one use.
+- Omitting PHP `maxUses` reads the configured default just like the transports. Explicit `maxUses: null` requests unlimited uses; the rule must permit it. Oversized usage limits, including configured defaults, are rejected rather than silently reduced.
 - `unlimitedUses()` is explicit; no perpetual grants exist in V0.1.
 - `allowGlobalScope()` explicitly permits requirements without a resource. Resource-backed requests still bind their resolved resource; V0.1 does not promote them into wildcard grants.
 - Bound arguments are compared with strict type/value equality after host normalization. Use integers for minor-unit money or decimal strings; floats are not accepted as bound values. Arrays/objects are not binding values in V0.1.
@@ -155,6 +158,8 @@ $result = app(ActionExecutor::class)->execute($context, 'orders.refund', $argume
 ```
 
 Only construct explicit principals from trusted server code. `check()` is a preview and never consumes a grant; denied checks are audited. Execution always reevaluates the current IAM and grant.
+
+Eloquent principals are refreshed before each IAM evaluation, including admission, so a retained execution context cannot preserve access after account suspension. Host-specific permission caches remain the IAM adapter's responsibility.
 
 ## HTTP, MCP and Artisan
 

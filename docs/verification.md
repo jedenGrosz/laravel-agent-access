@@ -23,4 +23,13 @@ The full SQLite suite passes for every PHP/Laravel pair below. Four independent-
 - Fresh Laravel 13 consumer with only runtime dependencies: publication, migrations, request, approval and one-use refund pass without MCP or Spatie installed.
 - Repeated installation is checked against Laravel's migration-date publication setting; it preserves configuration without force and does not duplicate the package migration.
 
+## Release-candidate follow-up
+
+- Full suite: 44 tests; SQLite reports 184 assertions and skips the four database races.
+- PostgreSQL 17 and MySQL 8.4 each pass all 44 tests with 220 assertions.
+- Eight additional scenarios verify consistent configured defaults across PHP/HTTP/MCP/Artisan, explicit unlimited-use authorization, idempotency of omitted versus explicit defaults, no silent usage-limit reduction, current principal refresh, suspension between preview and admission, approval-time hard denial, and shared command validation.
+- Admission refusals after transaction rollback are durably audited without running the handler or consuming a grant.
+- Fresh runtime-only consumer and authenticated HTTP/MCP refund smoke checks pass again after these changes.
+- Passport integration instructions are checked against the stable Laravel MCP 1.0.1 registrar and official documentation. The OAuth consent/discovery flow itself is not claimed as locally tested.
+
 Test databases/compatibility installations live under ignored temporary directories or isolated Docker services. This verification does not claim exactly-once effects in external payment providers. Host handlers remain responsible for their transactional business invariants and downstream idempotency.
