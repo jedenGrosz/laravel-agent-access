@@ -1,0 +1,11 @@
+/vendor/
+/.phpunit.cache/
+/.phpstan-cache/
+/workbench/vendor/
+/workbench/bootstrap/cache/*.php
+/workbench/storage/
+/workbench/.env
+*.sqlite
+.env
+/.test-results/
+/.docker-build.log
