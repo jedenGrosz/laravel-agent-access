@@ -44,7 +44,7 @@ The smoke test issues short-lived user tokens internally, checks HTTP, submits a
 After committing verified changes, create an ignored output directory and archive that exact Git revision:
 
 ```sh
-git archive --format=zip --prefix=laravel-agent-access/ --output=/absolute/output/path/laravel-agent-access-0.1.0-rc.1.zip HEAD
+git archive --format=zip --prefix=laravel-agent-access/ --output=/absolute/output/path/laravel-agent-access-0.1.0-rc.2.zip HEAD
 ```
 
 `git archive` includes tracked package source, migrations, documentation, Workbench, tests and CI. Vendor directories, tokens, local databases, caches and test results are ignored and not included. Record the commit ID and SHA-256 checksum beside the archive. This is a local source candidate, not a Packagist release or a Composer version declaration.

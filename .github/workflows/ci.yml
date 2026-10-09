@@ -107,5 +107,6 @@ jobs:
         working-directory: .test-results/consumer
         run: |
           composer config repositories.agent-access path ../..
-          composer require jedengrosz/laravel-agent-access:@dev --no-dev --no-interaction --no-scripts
+          composer require jedengrosz/laravel-agent-access:@dev --no-update --no-interaction --no-scripts
+          composer update --no-dev --no-interaction --no-scripts
       - run: php tests/Support/fresh-consumer-smoke.php .test-results/consumer
