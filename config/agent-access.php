@@ -16,5 +16,6 @@ return [
     'hierarchy' => [], // [['administrator', 'finance_manager'], ...]
     'grants' => ['default_ttl' => 900, 'max_ttl' => 86400, 'default_uses' => 1],
     'requests' => ['ttl' => 3600],
+    'inspection' => ['ability' => 'agent_access.inspect'], // Raw host Gate; never supplemented by business grants.
     'http' => ['enabled' => false, 'prefix' => 'agent-access/v1', 'middleware' => ['auth:sanctum', 'throttle:agent-access']],
 ];

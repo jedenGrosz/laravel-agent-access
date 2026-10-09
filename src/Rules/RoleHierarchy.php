@@ -6,14 +6,30 @@ namespace LaravelAgentAccess\Rules;
 
 final readonly class RoleHierarchy
 {
-    /**
-     * @param list<list<string>> $edges */
-    public function __construct(public array $edges = [])
+    /** @var array<string, list<string>> */
+    private array $children;
+
+    /** @var array<string, list<string>> */
+    private array $parents;
+
+    /** @var list<string> */
+    private array $nodes;
+
+    /** @var list<list<string>> */
+    public array $edges;
+
+    /** Raw configuration is validated before being exposed as typed graph edges.
+     * @param array<array-key, mixed> $edges */
+    public function __construct(array $edges = [])
     {
-        $seen = [];
-        $graph = [];
+        if (! array_is_list($edges)) {
+            throw new \InvalidArgumentException('Hierarchy edges must be a list.');
+        }
+        $children = $parents = $nodes = $seen = [];
+        $validated = [];
         foreach ($edges as $edge) {
-            if (count($edge) !== 2 || $edge[0] === '' || $edge[1] === '' || $edge[0] === $edge[1]) {
+            if (! is_array($edge) || ! array_is_list($edge) || count($edge) !== 2 || ! is_string($edge[0]) || ! is_string($edge[1]) ||
+                trim($edge[0]) === '' || trim($edge[1]) === '' || $edge[0] === $edge[1]) {
                 throw new \InvalidArgumentException('Invalid hierarchy edge.');
             }
             $key = json_encode($edge, JSON_THROW_ON_ERROR);
@@ -21,26 +37,168 @@ final readonly class RoleHierarchy
                 throw new \InvalidArgumentException('Duplicate hierarchy edge.');
             }
             $seen[$key] = true;
-            $graph[$edge[0]][] = $edge[1];
+            [$parent, $child] = $edge;
+            $validated[] = [$parent, $child];
+            $nodes[$parent] = $parent;
+            $nodes[$child] = $child;
+            $children[$parent][] = $child;
+            $parents[$child][] = $parent;
         }
-        $visited = [];
-        $active = [];
-        $walk = function (string $node) use (&$walk, &$visited, &$active, $graph): void {
-            if (isset($active[$node])) {
-                throw new \InvalidArgumentException('Hierarchy contains a cycle.');
+        foreach ($children as &$values) {
+            sort($values, SORT_STRING);
+        }
+        unset($values);
+        foreach ($parents as &$values) {
+            sort($values, SORT_STRING);
+        }
+        unset($values);
+        $this->nodes = array_values($nodes);
+        $this->edges = $validated;
+        $this->children = $children;
+        $this->parents = $parents;
+        $degrees = [];
+        $queue = [];
+        foreach ($this->nodes as $node) {
+            $degrees[$node] = count($parents[$node] ?? []);
+            if ($degrees[$node] === 0) {
+                $queue[] = $node;
             }
-            if (isset($visited[$node])) {
+        }
+        for ($index = 0; $index < count($queue); $index++) {
+            foreach ($children[$queue[$index]] ?? [] as $child) {
+                if (--$degrees[$child] === 0) {
+                    $queue[] = $child;
+                }
+            }
+        }
+        if (count($queue) !== count($this->nodes)) {
+            throw new \InvalidArgumentException('Hierarchy contains a cycle.');
+        }
+    }
+
+    /** @return list<string> */
+    public function roles(): array
+    {
+        $roles = $this->nodes;
+        sort($roles, SORT_STRING);
+
+        return $roles;
+    }
+
+    /** @return list<string> */
+    public function roots(): array
+    {
+        return array_values(array_filter($this->roles(), fn (string $role): bool => ! isset($this->parents[$role])));
+    }
+
+    /** @return list<string> */
+    public function ancestors(string $role): array
+    {
+        return $this->related($role, $this->parents);
+    }
+
+    /** @return list<string> */
+    public function descendants(string $role): array
+    {
+        return $this->related($role, $this->children);
+    }
+
+    /** @param array<string, list<string>> $graph
+     * @return list<string> */
+    private function related(string $role, array $graph): array
+    {
+        $queue = [$role];
+        $seen = [$role => true];
+        $result = [];
+        for ($index = 0; $index < count($queue); $index++) {
+            foreach ($graph[$queue[$index]] ?? [] as $node) {
+                if (! isset($seen[$node])) {
+                    $seen[$node] = true;
+                    $queue[] = $node;
+                    $result[] = $node;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /** @return list<string>|null */
+    public function shortestPath(string $ancestor, string $descendant): ?array
+    {
+        if (! in_array($ancestor, $this->nodes, true) || ! in_array($descendant, $this->nodes, true)) {
+            return null;
+        }
+        $queue = [[$ancestor]];
+        $seen = [$ancestor => true];
+        for ($index = 0; $index < count($queue); $index++) {
+            $path = $queue[$index];
+            $node = $path[count($path) - 1];
+            if ($node === $descendant) {
+                return $path;
+            }
+            foreach ($this->children[$node] ?? [] as $child) {
+                if (! isset($seen[$child])) {
+                    $seen[$child] = true;
+                    $queue[] = [...$path, $child];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function distance(string $ancestor, string $descendant): ?int
+    {
+        $path = $this->shortestPath($ancestor, $descendant);
+
+        return $path === null ? null : count($path) - 1;
+    }
+
+    /** @param list<string> $grantorRoles
+     * @param list<string> $targetRoles
+     * @return list<array{role: string, distance: int|null, path: list<string>|null}> */
+    public function rankGrantors(array $grantorRoles, array $targetRoles): array
+    {
+        sort($targetRoles, SORT_STRING);
+        $ranked = [];
+        foreach (array_unique($grantorRoles) as $role) {
+            $best = null;
+            foreach ($targetRoles as $target) {
+                $path = $this->shortestPath($role, $target);
+                if ($path !== null && ($best === null || count($path) < count($best))) {
+                    $best = $path;
+                }
+            }
+            $ranked[] = ['role' => $role, 'distance' => $best === null ? null : count($best) - 1, 'path' => $best];
+        }
+        usort($ranked, fn (array $a, array $b): int => (($a['distance'] ?? PHP_INT_MAX) <=> ($b['distance'] ?? PHP_INT_MAX)) ?: strcmp($a['role'], $b['role']));
+
+        return $ranked;
+    }
+
+    /** @return list<string> */
+    public function render(): array
+    {
+        $lines = [];
+        $expanded = [];
+        $walk = function (string $node, string $prefix, string $connector) use (&$walk, &$lines, &$expanded): void {
+            $shared = isset($expanded[$node]);
+            $lines[] = $prefix.$connector.$node.($shared ? ' [shared]' : '');
+            if ($shared) {
                 return;
             }
-            $active[$node] = true;
-            foreach ($graph[$node] ?? [] as $child) {
-                $walk($child);
+            $expanded[$node] = true;
+            $children = $this->children[$node] ?? [];
+            foreach ($children as $index => $child) {
+                $walk($child, $prefix.($connector === '' ? '' : ($connector === '`-- ' ? '    ' : '|   ')),
+                    $index === count($children) - 1 ? '`-- ' : '|-- ');
             }
-            unset($active[$node]);
-            $visited[$node] = true;
         };
-        foreach (array_keys($graph) as $node) {
-            $walk($node);
+        foreach ($this->roots() as $root) {
+            $walk($root, '', '');
         }
+
+        return $lines;
     }
 }

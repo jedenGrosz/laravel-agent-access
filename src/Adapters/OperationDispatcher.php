@@ -8,6 +8,7 @@ use Illuminate\Contracts\Validation\Factory;
 use LaravelAgentAccess\Actions\ActionExecutor;
 use LaravelAgentAccess\Approvals\ApprovalService;
 use LaravelAgentAccess\Authorization\DecisionService;
+use LaravelAgentAccess\Authorization\GrantSimulationService;
 use LaravelAgentAccess\Grants\GrantService;
 use LaravelAgentAccess\Identity\ExecutionContext;
 use LaravelAgentAccess\Requests\AccessRequestService;
@@ -16,7 +17,8 @@ use LaravelAgentAccess\Requests\QueryService;
 final readonly class OperationDispatcher
 {
     public function __construct(private Factory $validation, private DecisionService $decisions, private ActionExecutor $executor,
-        private AccessRequestService $requests, private ApprovalService $approvals, private GrantService $grants, private QueryService $queries) {}
+        private AccessRequestService $requests, private ApprovalService $approvals, private GrantService $grants, private QueryService $queries,
+        private GrantSimulationService $simulation) {}
 
     /**
      * @param array<string, mixed> $input
@@ -24,11 +26,15 @@ final readonly class OperationDispatcher
     public function dispatch(ExecutionContext $context, string $operation, array $input): array
     {
         $rules = ['user_id' => 'prohibited', 'principal' => 'prohibited', 'actor_id' => 'prohibited', 'target_user_id' => 'prohibited', 'target' => 'prohibited', 'roles' => 'prohibited'];
-        if (in_array($operation, ['check', 'execute', 'request'], true)) {
+        if (in_array($operation, ['check', 'execute', 'request', 'simulate'], true)) {
             $rules += ['action' => 'required|string|max:128', 'arguments' => 'present|array'];
         }
         if ($operation === 'request') {
             $rules += ['rule_id' => 'nullable|string|max:128', 'duration_seconds' => 'nullable|integer|min:1', 'max_uses' => 'nullable|integer|min:1', 'reason' => 'nullable|string|max:500', 'idempotency_key' => 'nullable|string|max:128'];
+        }
+        if ($operation === 'simulate') {
+            $rules += ['rule_id' => 'required|string|max:128', 'recipient_id' => 'nullable|string|max:128',
+                'duration_seconds' => 'nullable|integer|min:1', 'max_uses' => 'nullable|integer|min:1'];
         }
         if (in_array($operation, ['show', 'approve', 'reject', 'cancel', 'revoke'], true)) {
             $rules += ['id' => 'required|string|max:26', 'reason' => 'nullable|string|max:500'];
@@ -45,6 +51,9 @@ final readonly class OperationDispatcher
         return match ($operation) {
             'check' => $this->decisions->check($context, $action, $arguments)->toArray(),
             'execute' => $this->executor->execute($context, $action, $arguments),
+            'simulate' => $this->simulation->simulate($context, $action, $arguments, $valid['rule_id'], $valid['recipient_id'] ?? null,
+                isset($valid['duration_seconds']) ? (int) $valid['duration_seconds'] : null,
+                array_key_exists('max_uses', $valid) ? ($valid['max_uses'] === null ? null : (int) $valid['max_uses']) : (int) config('agent-access.grants.default_uses', 1)),
             'request' => $this->requests->create($context, $action, $arguments, $valid['rule_id'] ?? null,
                 isset($valid['duration_seconds']) ? (int) $valid['duration_seconds'] : null,
                 array_key_exists('max_uses', $valid) ? ($valid['max_uses'] === null ? null : (int) $valid['max_uses']) : (int) config('agent-access.grants.default_uses', 1),

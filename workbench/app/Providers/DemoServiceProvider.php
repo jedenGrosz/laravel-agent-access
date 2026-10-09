@@ -42,6 +42,8 @@ final class DemoServiceProvider extends ServiceProvider
             $this->commands([DemoTokenCommand::class]);
         }
         Gate::policy(Order::class, OrderPolicy::class);
+        Gate::define('agent_access.inspect', fn (User $user, string $targetId): bool => ! $user->is_suspended && $user->hasRole('finance_manager') &&
+            User::query()->whereKey($targetId)->where('department', $user->department)->exists());
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadMigrationsFrom(__DIR__.'/../../../database/migrations');
         if (class_exists(Mcp::class)) {

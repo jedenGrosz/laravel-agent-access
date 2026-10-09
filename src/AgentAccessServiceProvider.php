@@ -10,12 +10,14 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use LaravelAgentAccess\Actions\ActionRegistry;
 use LaravelAgentAccess\Adapters\Laravel\CallbackRoleResolver;
+use LaravelAgentAccess\Adapters\Laravel\LaravelInspectionAuthorizer;
 use LaravelAgentAccess\Adapters\Laravel\LaravelPrincipalResolver;
 use LaravelAgentAccess\Audit\DatabaseAuditWriter;
 use LaravelAgentAccess\Console\InstallCommand;
 use LaravelAgentAccess\Console\ManagementCommand;
 use LaravelAgentAccess\Contracts\AuditWriter;
 use LaravelAgentAccess\Contracts\IamAdapter;
+use LaravelAgentAccess\Contracts\InspectionAuthorizer;
 use LaravelAgentAccess\Contracts\PrincipalResolver;
 use LaravelAgentAccess\Contracts\RoleResolver;
 use LaravelAgentAccess\Rules\RoleHierarchy;
@@ -33,6 +35,7 @@ final class AgentAccessServiceProvider extends ServiceProvider
             return $resolver instanceof \Closure ? new CallbackRoleResolver($resolver) : $app->make($resolver);
         });
         $this->app->bind(PrincipalResolver::class, LaravelPrincipalResolver::class);
+        $this->app->bind(InspectionAuthorizer::class, LaravelInspectionAuthorizer::class);
         $this->app->bind(AuditWriter::class, DatabaseAuditWriter::class);
         $this->app->singleton(RuleRegistry::class, fn () => new RuleRegistry(config('agent-access.rules', [])));
         $this->app->singleton(ActionRegistry::class, fn ($app) => new ActionRegistry($app, config('agent-access.actions', [])));
@@ -44,7 +47,7 @@ final class AgentAccessServiceProvider extends ServiceProvider
         $this->app->booted(fn () => $this->app->make(ConfigurationValidator::class)->validate());
         if ($this->app->runningInConsole()) {
             $commands = [InstallCommand::class];
-            foreach (['validate', 'hierarchy', 'check', 'request', 'requests', 'show', 'approve', 'reject', 'cancel', 'grants', 'revoke', 'expire'] as $operation) {
+            foreach (['validate', 'hierarchy', 'check', 'simulate', 'request', 'requests', 'show', 'approve', 'reject', 'cancel', 'grants', 'revoke', 'expire'] as $operation) {
                 $commands[] = new ManagementCommand($operation);
             }
             $this->commands($commands);

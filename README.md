@@ -8,6 +8,8 @@ The existing IAM defines roles, permissions and baseline access. This package ad
 
 Start with the [host integration guide](docs/integration.md) for native Gate, Spatie, Sanctum, MCP and existing Passport. Local release preparation is described in [the release guide](docs/release.md).
 
+See [IAM inspection](docs/iam-inspection.md) for hierarchy navigation, ranked grantor roles and a side-effect-free grant simulator through PHP, HTTP, MCP and Artisan.
+
 ## Run the Orders demo
 
 ```sh

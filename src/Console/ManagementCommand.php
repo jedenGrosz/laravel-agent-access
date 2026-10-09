@@ -18,7 +18,7 @@ final class ManagementCommand extends Command
 {
     public function __construct(private readonly string $operation)
     {
-        $this->signature = 'agent-access:'.$operation.' {--as= : Local trusted user ID} {--input={} : JSON operation arguments}';
+        $this->signature = 'agent-access:'.$operation.' {--as= : Local trusted user ID} {--input={} : JSON operation arguments} {--json : Machine-readable hierarchy}';
         $this->description = 'Laravel Agent Access: '.$operation;
         parent::__construct();
     }
@@ -27,7 +27,14 @@ final class ManagementCommand extends Command
     {
         try {
             if ($this->operation === 'hierarchy') {
-                $this->line(json_encode(app(RoleHierarchy::class)->edges, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+                $hierarchy = app(RoleHierarchy::class);
+                if ($this->option('json')) {
+                    $this->line(json_encode($hierarchy->edges, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+                } else {
+                    foreach ($hierarchy->render() ?: ['No hierarchy relations configured.'] as $line) {
+                        $this->line($line);
+                    }
+                }
 
                 return self::SUCCESS;
             }

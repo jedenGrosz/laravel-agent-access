@@ -2,6 +2,8 @@
 
 ## 0.1.0
 
+- Hierarchy traversal, shortest paths, deterministic grantor ranking and readable DAG presentation.
+- Shared grant policy traces, public decision reasons and an authorized read-only grant simulator.
 - Current principal refresh before IAM evaluation, including the final admission check.
 - Consistent configured default usage limits across PHP, HTTP, MCP and Artisan; shared configuration validation.
 - Host integration and local release-candidate instructions.

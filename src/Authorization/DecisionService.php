@@ -7,18 +7,21 @@ namespace LaravelAgentAccess\Authorization;
 use LaravelAgentAccess\Actions\ActionRegistry;
 use LaravelAgentAccess\Contracts\AuditWriter;
 use LaravelAgentAccess\Contracts\IamAdapter;
+use LaravelAgentAccess\Contracts\RoleResolver;
 use LaravelAgentAccess\Grants\GrantService;
 use LaravelAgentAccess\Identity\ExecutionContext;
 use LaravelAgentAccess\Requirements\AccessRequirement;
 use LaravelAgentAccess\Requirements\RequirementResolver;
 use LaravelAgentAccess\Rules\GrantConstraints;
 use LaravelAgentAccess\Rules\GrantPolicy;
+use LaravelAgentAccess\Rules\RoleHierarchy;
 use LaravelAgentAccess\Rules\RuleRegistry;
 
 final readonly class DecisionService
 {
     public function __construct(private IamAdapter $iam, private GrantService $grants, private RuleRegistry $rules,
-        private GrantPolicy $policy, private RequirementResolver $requirements, private ActionRegistry $actions) {}
+        private GrantPolicy $policy, private RequirementResolver $requirements, private ActionRegistry $actions,
+        private RoleHierarchy $hierarchy, private RoleResolver $roles) {}
 
     /**
      * @param array<string, mixed> $arguments */
@@ -56,7 +59,8 @@ final readonly class DecisionService
                     ? (int) config('agent-access.grants.default_uses', 1)
                     : min((int) config('agent-access.grants.default_uses', 1), $rule->maximumUses));
             if ($this->policy->requestable($context->principal, $requirement, $defaults, $rule)) {
-                $options[] = ['rule_id' => $rule->id, 'eligible_grantor_roles' => $rule->grantorRoles,
+                $ranked = $this->hierarchy->rankGrantors($rule->grantorRoles, $this->roles->roles($context->principal));
+                $options[] = ['rule_id' => $rule->id, 'eligible_grantor_roles' => array_column($ranked, 'role'), 'grantor_hierarchy' => $ranked,
                     'max_duration_seconds' => min($rule->maximumDuration, (int) config('agent-access.grants.max_ttl', 86400)),
                     'max_uses' => $rule->maximumUses, 'resource_required' => $rule->resourceRequired, 'bound_argument_names' => $rule->boundArguments];
             }
