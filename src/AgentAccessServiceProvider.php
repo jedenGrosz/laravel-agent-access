@@ -58,7 +58,8 @@ final class AgentAccessServiceProvider extends ServiceProvider
         }
         RateLimiter::for('agent-access', fn (Request $request) => Limit::perMinute(60)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
         $this->publishes([__DIR__.'/../config/agent-access.php' => config_path('agent-access.php')], 'agent-access-config');
-        $this->publishesMigrations([__DIR__.'/../database/migrations' => database_path('migrations')], 'agent-access-migrations');
+        // Stable names make repeat installation idempotent even when Laravel updates publication dates.
+        $this->publishes([__DIR__.'/../database/migrations' => database_path('migrations')], 'agent-access-migrations');
         if (config('agent-access.http.enabled')) {
             $this->loadRoutesFrom(__DIR__.'/../routes/agent-access.php');
         }
