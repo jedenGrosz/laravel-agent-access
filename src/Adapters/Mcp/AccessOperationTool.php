@@ -30,6 +30,9 @@ abstract class AccessOperationTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         $op = $this->operation();
+        if ($op === 'actions') {
+            return [];
+        }
         if (in_array($op, ['check', 'request', 'simulate'], true)) {
             $fields = ['action' => $schema->string()->required(), 'arguments' => $schema->object()->required()];
             if ($op === 'request') {

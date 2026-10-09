@@ -2,6 +2,9 @@
 
 ## 0.1.0
 
+- Public action discovery, SQL candidate filtering with full final visibility policies and additive lookup indexes.
+- Artisan list operations work without an explicit JSON input option.
+- Minimum framework constraints raised to Laravel 12.69.0 / 13.30.0 after verifying upstream advisories; dedicated minimum-version CI jobs.
 - Real Passport OAuth/PKCE smoke fixture and CI job, strict binding/string identity tests and concurrent idempotent request creation.
 - Hierarchy traversal, shortest paths, deterministic grantor ranking and readable DAG presentation.
 - Shared grant policy traces, public decision reasons and an authorized read-only grant simulator.

@@ -4,11 +4,13 @@ Controlled, explainable privilege grants for agents acting on behalf of authenti
 
 The existing IAM defines roles, permissions and baseline access. This package adds explicit grant authority, scoped grants, approval requests and a database audit trail. PHP, HTTP, MCP and Artisan use the same application services. No external IAM service or LLM decision is required.
 
-**Local V0.1 package; not published on Packagist.** PHP 8.3+, Laravel 12.41.1+/13. MCP and Spatie are optional integrations.
+**Local V0.1 package; not published on Packagist.** PHP 8.3+, Laravel 12.69.0+/13.30.0+. MCP and Spatie are optional integrations.
 
 Start with the [host integration guide](docs/integration.md) for native Gate, Spatie, Sanctum, MCP and existing Passport. Local release preparation is described in [the release guide](docs/release.md).
 
 See [IAM inspection](docs/iam-inspection.md) for hierarchy navigation, ranked grantor roles and a side-effect-free grant simulator through PHP, HTTP, MCP and Artisan.
+
+The [action catalog](docs/action-catalog.md) documents action discovery and visibility query filtering. Minimum Laravel versions include upstream security fixes; see [compatibility verification](docs/verification.md).
 
 ## Run the Orders demo
 
@@ -179,7 +181,7 @@ HTTP endpoints are relative to `/agent-access/v1`:
 | GET | `/grants` | Authorized grants |
 | POST | `/grants/{id}/revoke` | Revoke |
 
-Lists paginate after visibility evaluation: default 20, maximum 100. Totals do not include hidden records. V0.1 evaluates PHP visibility policies while scanning records; a large deployment may need a host-specific query optimization later.
+Lists use SQL candidate filters and paginate after full visibility evaluation: default 20, maximum 100. Totals do not include hidden records. V0.1 evaluates PHP visibility policies while scanning the filtered candidate records; a large deployment may need a host-specific query optimization later.
 
 `check`, `execute` and `request` accept `action` and `arguments`; requests additionally accept `rule_id`, `duration_seconds`, `max_uses`, `reason`, `idempotency_key`. HTTP also accepts `Idempotency-Key`. Route parameters determine the target record/action. Hidden records give 404; denied execution 403; validation 422; state/idempotency conflicts 409.
 
@@ -187,7 +189,7 @@ For MCP install `laravel/mcp:^1.0.1`, register the nine tools under `Adapters\Mc
 
 Tool errors contain `isError: true`, structured data and a text fallback. `ACCESS_REQUIRED` includes the missing requirement, candidate roles and independent grant options. HTTP and PHP expose the same decision model. Requestable tools can remain discoverable before access is granted.
 
-Artisan commands: `agent-access:install`, `validate`, `hierarchy`, `check`, `request`, `requests`, `show`, `approve`, `reject`, `cancel`, `grants`, `revoke`, `expire`.
+Artisan commands: `agent-access:install`, `validate`, `hierarchy`, `actions`, `check`, `simulate`, `request`, `requests`, `show`, `approve`, `reject`, `cancel`, `grants`, `revoke`, `expire`.
 
 ```sh
 php artisan agent-access:check --as=52 --input='{"action":"orders.refund","arguments":{"order_id":431,"amount_minor":10000,"currency":"PLN"}}'

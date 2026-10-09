@@ -18,7 +18,7 @@ final class ManagementCommand extends Command
 {
     public function __construct(private readonly string $operation)
     {
-        $this->signature = 'agent-access:'.$operation.' {--as= : Local trusted user ID} {--input={} : JSON operation arguments} {--json : Machine-readable hierarchy}';
+        $this->signature = 'agent-access:'.$operation.' {--as= : Local trusted user ID} {--input= : JSON operation arguments} {--json : Machine-readable hierarchy}';
         $this->description = 'Laravel Agent Access: '.$operation;
         parent::__construct();
     }
@@ -56,10 +56,7 @@ final class ManagementCommand extends Command
 
                 return self::SUCCESS;
             }
-            $json = $this->option('input');
-            if (! is_string($json)) {
-                throw new \InvalidArgumentException('Input must be JSON.');
-            }
+            $json = $this->option('input') ?? '{}';
             $input = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
             if (! is_array($input) || (array_is_list($input) && $input !== [])) {
                 throw new \InvalidArgumentException('Input must be a JSON object.');

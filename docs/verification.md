@@ -1,5 +1,9 @@
 # V0.1 verification
 
+Current catalog/query checkpoint: 77 tests, 316 SQLite assertions (five races skipped), and 360 assertions with all tests passing on both PostgreSQL 17 and MySQL 8.4. All six PHP 8.3/8.4/8.5 and Laravel 12/13 combinations pass. The new lookup migration is tested through rollback/reapply with an existing grant.
+
+The original Laravel 12.41.1 floor could not be installed by Composer because of upstream advisories. The supported framework floor is now 12.69.0 / 13.30.0, matching the patched ranges in [Laravel's advisory](https://github.com/laravel/framework/security/advisories/GHSA-jh5r-qr3c-85q8). No advisory block was disabled or ignored. Separate exact-floor CI jobs are defined alongside the current-version matrix.
+
 Latest IAM/Passport follow-up: 70 tests; SQLite passes 269 assertions and skips five races. PostgreSQL 17 and MySQL 8.4 each pass all 70 tests with 313 assertions. Added graph navigation/ranking, policy traces and simulator authorization tests, UUID/ULID and strict binding tests, and concurrent idempotent request creation.
 
 The separate Laravel 13 / Passport 13.9.0 / MCP 1.0.1 fixture passes real HTTP OAuth discovery, explicit consent, S256 PKCE including rejection of a wrong verifier, user bearer tokens, cross-transport approval/refund and token revocation. See [Passport verification](passport-verification.md). Historical RC1 results below describe the earlier 44-test checkpoint.

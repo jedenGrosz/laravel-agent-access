@@ -74,3 +74,22 @@ jobs:
           composer config repositories.agent-access path ../..
           composer require laravel-agent-access/laravel-agent-access:@dev 'laravel/passport:^13.0' laravel/mcp:1.0.1 --no-interaction --no-scripts
       - run: php tests/Support/passport-smoke.php
+  minimum-framework:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - laravel: '12.69.0'
+            testbench: '^10.8'
+          - laravel: '13.30.0'
+            testbench: '^11.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, pdo_sqlite
+          coverage: none
+      - run: composer require --dev 'laravel/framework:${{ matrix.laravel }}' 'orchestra/testbench:${{ matrix.testbench }}' --no-update
+      - run: composer update --prefer-dist --no-interaction
+      - run: composer test

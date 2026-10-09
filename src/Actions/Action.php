@@ -11,6 +11,11 @@ abstract class Action
 {
     abstract public function key(): string;
 
+    public function description(): string
+    {
+        return $this->key();
+    }
+
     /**
      * @return array<string, mixed> */
     abstract public function rules(): array;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaravelAgentAccess\Adapters;
 
 use Illuminate\Contracts\Validation\Factory;
+use LaravelAgentAccess\Actions\ActionCatalog;
 use LaravelAgentAccess\Actions\ActionExecutor;
 use LaravelAgentAccess\Approvals\ApprovalService;
 use LaravelAgentAccess\Authorization\DecisionService;
@@ -18,7 +19,7 @@ final readonly class OperationDispatcher
 {
     public function __construct(private Factory $validation, private DecisionService $decisions, private ActionExecutor $executor,
         private AccessRequestService $requests, private ApprovalService $approvals, private GrantService $grants, private QueryService $queries,
-        private GrantSimulationService $simulation) {}
+        private GrantSimulationService $simulation, private ActionCatalog $catalog) {}
 
     /**
      * @param array<string, mixed> $input
@@ -49,6 +50,7 @@ final readonly class OperationDispatcher
         $id = (string) ($valid['id'] ?? '');
 
         return match ($operation) {
+            'actions' => $this->catalog->list($context),
             'check' => $this->decisions->check($context, $action, $arguments)->toArray(),
             'execute' => $this->executor->execute($context, $action, $arguments),
             'simulate' => $this->simulation->simulate($context, $action, $arguments, $valid['rule_id'], $valid['recipient_id'] ?? null,

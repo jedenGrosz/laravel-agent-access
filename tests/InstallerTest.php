@@ -40,6 +40,7 @@ final class InstallerTest extends TestCase
         $this->artisan('agent-access:install')->assertSuccessful();
         self::assertSame($custom, file_get_contents($file));
         self::assertCount(1, glob($this->fixture.'/database/migrations/*_create_agent_access_tables.php'));
+        self::assertCount(1, glob($this->fixture.'/database/migrations/*_add_agent_access_lookup_indexes.php'));
         $this->artisan('agent-access:install', ['--force' => true])->assertSuccessful();
         self::assertNotSame($custom, file_get_contents($file));
         self::assertCount(1, glob($this->fixture.'/database/migrations/*_create_agent_access_tables.php'));
