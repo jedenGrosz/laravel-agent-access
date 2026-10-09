@@ -1,5 +1,9 @@
 # V0.1 verification
 
+Latest IAM/Passport follow-up: 70 tests; SQLite passes 269 assertions and skips five races. PostgreSQL 17 and MySQL 8.4 each pass all 70 tests with 313 assertions. Added graph navigation/ranking, policy traces and simulator authorization tests, UUID/ULID and strict binding tests, and concurrent idempotent request creation.
+
+The separate Laravel 13 / Passport 13.9.0 / MCP 1.0.1 fixture passes real HTTP OAuth discovery, explicit consent, S256 PKCE including rejection of a wrong verifier, user bearer tokens, cross-transport approval/refund and token revocation. See [Passport verification](passport-verification.md). Historical RC1 results below describe the earlier 44-test checkpoint.
+
 Verified locally on 2026-10-09.
 
 ## Compatibility

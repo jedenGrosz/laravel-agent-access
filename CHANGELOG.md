@@ -2,6 +2,7 @@
 
 ## 0.1.0
 
+- Real Passport OAuth/PKCE smoke fixture and CI job, strict binding/string identity tests and concurrent idempotent request creation.
 - Hierarchy traversal, shortest paths, deterministic grantor ranking and readable DAG presentation.
 - Shared grant policy traces, public decision reasons and an authorized read-only grant simulator.
 - Current principal refresh before IAM evaluation, including the final admission check.

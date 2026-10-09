@@ -14,7 +14,7 @@ docker compose run --rm test php vendor/bin/phpunit
 docker compose run --rm -e LAA_DB_CONNECTION=mysql -e DB_HOST=mysql -e DB_PORT=3306 test php vendor/bin/phpunit
 ```
 
-The SQLite suite skips the four independent-process race tests. The database runs require all tests, including simultaneous approval, one-use execution, approve/cancel and revoke/admission races. Test containers use their own databases. The GitHub workflow repeats PHP 8.3/8.4/8.5 with Laravel 12/13 and both real databases when run in a remote repository.
+The SQLite suite skips the five independent-process race tests. The database runs require all tests, including idempotent request creation, simultaneous approval, one-use execution, approve/cancel and revoke/admission races. Test containers use their own databases. The GitHub workflow repeats PHP 8.3/8.4/8.5 with Laravel 12/13 and both real databases when run in a remote repository.
 
 Test a new host with runtime dependencies only; optional integrations must not be installed solely to boot the core. Use a Composer path repository pointing at this checkout, require `laravel-agent-access/laravel-agent-access:@dev`, publish, configure, validate and migrate. The independent smoke scenario is available as:
 
@@ -56,6 +56,6 @@ git archive --format=zip --prefix=laravel-agent-access/ --output=/absolute/outpu
 - No exactly-once guarantee for external effects; host handlers implement idempotency.
 - One permission and one optional resource per action; scalar argument equality only.
 - Visibility filtering evaluates PHP policies while scanning candidates; large hosts may need query optimization.
-- Passport integration uses existing host authentication. OAuth discovery/consent is documented but not covered by the Sanctum demo tests.
+- Passport integration uses existing host authentication. A separate disposable host verifies OAuth discovery, consent, PKCE and real-token HTTP/MCP execution.
 
 See [verification evidence](verification.md) for the local compatibility and integration checks. Public distribution should be based on a separately chosen vendor/repository after reviewing this source candidate.

@@ -7,7 +7,9 @@ namespace Tests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LaravelAgentAccess\Approvals\ApprovalService;
+use LaravelAgentAccess\Models\AccessRequest;
 use LaravelAgentAccess\Models\Approval;
+use LaravelAgentAccess\Models\AuditEvent;
 use LaravelAgentAccess\Models\Grant;
 use LaravelAgentAccess\Models\GrantUse;
 use LaravelAgentAccess\Requests\AccessRequestService;
@@ -26,7 +28,7 @@ final class ConcurrencyTest extends TestCase
     /**
      * @param list<array{string, string, int}> $operations
      * @return list<array<string, mixed>> */
-    private function race(array $operations, string $table, string $id): array
+    private function race(array $operations, string $table, string $id, bool $mustWaitForLock = true): array
     {
         $barrier = sys_get_temp_dir().'/laa-'.Str::ulid();
         mkdir($barrier);
@@ -51,7 +53,9 @@ final class ConcurrencyTest extends TestCase
             file_put_contents($barrier.'/go', 'go');
             usleep(200000); // Both independent connections contend while the parent owns the row lock.
             foreach ($workers as $worker) {
-                self::assertTrue($worker->isRunning());
+                if ($mustWaitForLock) {
+                    self::assertTrue($worker->isRunning());
+                }
             }
             DB::commit();
             $results = [];
@@ -86,6 +90,17 @@ final class ConcurrencyTest extends TestCase
         self::assertSame($results[0]['result'], $results[1]['result']);
         self::assertSame(1, Grant::query()->count());
         self::assertSame(1, Approval::query()->count());
+    }
+
+    public function test_concurrent_request_retries_return_one_idempotent_request(): void
+    {
+        // The barrier releases both independent workers together; no request exists initially.
+        $results = $this->race([['request', 'parallel-request', $this->support->id], ['request', 'parallel-request', $this->support->id]], 'users', (string) $this->support->id, false);
+        self::assertTrue($results[0]['ok']);
+        self::assertTrue($results[1]['ok']);
+        self::assertSame($results[0]['result'], $results[1]['result']);
+        self::assertSame(1, AccessRequest::query()->count());
+        self::assertSame(1, AuditEvent::query()->where('event_type', 'ACCESS_REQUEST_CREATED')->count());
     }
 
     public function test_two_uses_run_one_handler(): void

@@ -26,6 +26,7 @@ while (! is_file($barrier.'/go')) {
 }
 try {
     $result = match ($argv[1]) {
+        'request' => app(AccessRequestService::class)->create($context, 'orders.refund', ['order_id' => 431, 'amount_minor' => 10000, 'currency' => 'PLN'], idempotencyKey: $argv[2])->id,
         'approve' => app(ApprovalService::class)->approve($context, $argv[2])->id,
         'cancel' => app(AccessRequestService::class)->cancel($context, $argv[2])->status,
         'revoke' => app(GrantService::class)->revoke($context, $argv[2])->id,

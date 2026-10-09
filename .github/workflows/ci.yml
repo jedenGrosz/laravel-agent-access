@@ -57,3 +57,20 @@ jobs:
           DB_PORT: ${{ matrix.database == 'pgsql' && '5432' || '3306' }}
           DB_USERNAME: agent_access
           DB_PASSWORD: local-test-only
+  passport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, dom, pdo_sqlite, sodium
+          coverage: none
+      - run: composer install --prefer-dist --no-interaction
+      - run: composer create-project laravel/laravel .test-results/passport-consumer '13.*' --prefer-dist --no-interaction --no-scripts
+      - name: Configure disposable Passport host
+        working-directory: .test-results/passport-consumer
+        run: |
+          composer config repositories.agent-access path ../..
+          composer require laravel-agent-access/laravel-agent-access:@dev 'laravel/passport:^13.0' laravel/mcp:1.0.1 --no-interaction --no-scripts
+      - run: php tests/Support/passport-smoke.php

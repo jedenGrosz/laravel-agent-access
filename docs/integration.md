@@ -109,7 +109,7 @@ Mcp::web('/mcp', OrdersServer::class)
 
 For clients using OAuth discovery, register `Mcp::oauthRoutes()` once in the host and use its existing Passport authorization/consent flow. Laravel MCP 1.0.1 advertises `mcp:use`; application action permissions remain IAM decisions. Configure additional scope middleware according to the host's installed Passport version. This guide's registration methods are checked against the [stable MCP 1.0.1 registrar](https://github.com/laravel/mcp/blob/v1.0.1/src/Server/Registrar.php) and [Laravel MCP authentication documentation](https://laravel.com/docs/13.x/mcp#authentication).
 
-The authenticated guard must return the configured human user model. Client-credentials authentication without a user is outside V0.1. Existing Passport keys, clients, token lifetimes, consent and token revocation remain host responsibilities. The local automated demo uses Sanctum; Passport wiring is documented, not claimed as an end-to-end OAuth test.
+The authenticated guard must return the configured human user model. Client-credentials authentication without a user is outside V0.1. Existing Passport keys, clients, token lifetimes, consent and token revocation remain host responsibilities. The Workbench demo uses Sanctum. A separate disposable Passport host verifies discovery, authorization-code consent, S256 PKCE, actual user tokens, HTTP/MCP approval and refund, identity override rejection and token revocation; see [Passport verification](passport-verification.md).
 
 The optional HTTP workflow can also use `auth:api` by replacing its configured middleware. Authentication guard names and Spatie role guard names are separate configuration choices.
 
