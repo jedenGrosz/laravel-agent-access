@@ -20,7 +20,12 @@ final class PrincipalDirectory
         if (! is_string($class) || ! is_subclass_of($class, Model::class)) {
             throw new \LogicException('Configure an Eloquent authenticatable principal model.');
         }
-        $model = $class::query()->find($id);
+        $query = $class::query();
+        $prototype = $query->getModel();
+        if (! $prototype instanceof Authenticatable) {
+            throw new \LogicException('Configure an Eloquent authenticatable principal model.');
+        }
+        $model = $query->where($prototype->getAuthIdentifierName(), $id)->first();
         if (! $model instanceof Authenticatable) {
             throw new AccessException('PRINCIPAL_NOT_FOUND', 404);
         }

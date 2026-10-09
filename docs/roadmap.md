@@ -11,12 +11,14 @@
 - SQL candidate filtering before full visibility evaluation, additive lookup indexes and local installation doctor.
 - Orders Workbench with Sanctum/Spatie and an independent real Passport OAuth/PKCE fixture.
 - SQLite tests, separate-process PostgreSQL/MySQL races, PHP/Laravel matrix and exact framework-floor CI.
+- Public API contract review, resource-less Gate argument forwarding, inherited-condition fingerprints and custom authentication identifiers.
+- A second native-host acceptance flow: report export without a resource, exact argument binding and current hard-denial rechecks.
 
 ## Close the first public release
 
 1. Verify the final commit's GitHub CI and assemble an updated local source archive/manifest.
-2. Review the public contracts and the candidate in a real host application.
-3. The final Composer name is selected: jedengrosz/laravel-agent-access. Verify consumer installation under that name.
+2. Public contracts have been reviewed and documented; native fresh-host refund/export and real Passport acceptance flows are verified.
+3. The final Composer name is selected and installed in fresh consumers: jedengrosz/laravel-agent-access.
 4. Tag and publish the selected version/release, then submit it to Packagist as a separate distribution step.
 
 The supported framework floor was raised to Laravel 12.69.0 / 13.30.0 after confirming upstream advisories. The core still has no mandatory MCP, Sanctum, Spatie or Passport dependency.
@@ -27,7 +29,7 @@ The supported framework floor was raised to Laravel 12.69.0 / 13.30.0 after conf
 - Queued notifications built on existing after-commit events; explicit application integration.
 - Cursor pagination or host visibility query adapters for large candidate sets.
 - Audit search/export, retention and operational monitoring with separate management authorization.
-- Broader real-host acceptance tests and a second business domain beyond Orders.
+- Broader real-host acceptance tests, including host-specific handlers beyond the verified Orders and native report-export flows.
 
 ## Later IAM extensions requiring an explicit design decision
 

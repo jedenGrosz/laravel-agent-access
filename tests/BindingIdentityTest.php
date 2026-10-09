@@ -26,6 +26,7 @@ use LaravelAgentAccess\Rules\RuleRegistry;
 use Orchestra\Testbench\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Fixtures\BoundValueAction;
+use Tests\Fixtures\CustomIdentityUser;
 use Tests\Fixtures\StringUser;
 
 final class BindingIdentityTest extends TestCase
@@ -80,6 +81,25 @@ final class BindingIdentityTest extends TestCase
     {
         yield 'UUID' => ['3ae4cd90-7a20-4a98-9c2c-4b0b3f078fa1', '4ae4cd90-7a20-4a98-9c2c-4b0b3f078fa2'];
         yield 'ULID' => ['01K72NYQT5MTXC9R21K6VN6B5A', '01K72NYQT5MTXC9R21K6VN6B5B'];
+    }
+
+    public function test_custom_authentication_identifier_is_resolved_consistently_with_the_authenticated_principal(): void
+    {
+        config(['agent-access.principal_model' => CustomIdentityUser::class]);
+        Schema::table('string_users', function (Blueprint $table): void {
+            $table->string('identity')->nullable()->unique();
+        });
+        $support = CustomIdentityUser::query()->create(['id' => 'database-row-1', 'identity' => 'support-identity', 'role' => 'support']);
+        CustomIdentityUser::query()->create(['id' => 'database-row-2', 'identity' => 'manager-identity', 'role' => 'manager']);
+        $context = new ExecutionContext(new Principal($support));
+        self::assertSame('support-identity', $context->principal->id);
+        $manager = new ExecutionContext(app(PrincipalDirectory::class)->find('manager-identity'));
+        $request = app(AccessRequestService::class)->create($context, 'fixture.bound', ['value' => 10]);
+        $grant = app(ApprovalService::class)->approve($manager, $request->id);
+        self::assertSame('support-identity', $request->principal_id);
+        self::assertSame('manager-identity', $grant->getAttribute('grantor_id'));
+        self::assertSame(['value' => 10], app(ActionExecutor::class)->execute($context, 'fixture.bound', ['value' => 10]));
+        self::assertSame(1, $grant->fresh()->uses);
     }
 
     #[DataProvider('unsupportedBindings')]

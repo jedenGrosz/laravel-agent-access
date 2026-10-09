@@ -22,7 +22,7 @@ Test a new host with runtime dependencies only; optional integrations must not b
 php tests/Support/fresh-consumer-smoke.php /absolute/path/to/isolated/laravel-app
 ```
 
-This fixture creates demonstration tables/users in the named host. Run it only in a disposable new application. It requires the host's stock `App\Models\User`, SQLite and the core package; it checks that MCP/Spatie are absent. Repeat the installation to verify migration publication remains idempotent.
+This fixture creates demonstration tables/users in the named host. Run it only in a disposable new application. It requires the host's stock `App\Models\User`, SQLite and the core package; it checks that MCP/Spatie are absent. It verifies a scoped refund and a resource-less report export, normalized arguments, an embargo overriding an existing grant, and no handler/usage change on hard denial. Repeat the installation to verify migration publication remains idempotent.
 
 For the authenticated transport smoke test, prepare a disposable Workbench demo and start it in a second terminal:
 
@@ -44,7 +44,7 @@ The smoke test issues short-lived user tokens internally, checks HTTP, submits a
 After committing verified changes, create an ignored output directory and archive that exact Git revision:
 
 ```sh
-git archive --format=zip --prefix=laravel-agent-access/ --output=/absolute/output/path/laravel-agent-access-0.1.0-rc.2.zip HEAD
+git archive --format=zip --prefix=laravel-agent-access/ --output=/absolute/output/path/laravel-agent-access-0.1.0-rc.3.zip HEAD
 ```
 
 `git archive` includes tracked package source, migrations, documentation, Workbench, tests and CI. Vendor directories, tokens, local databases, caches and test results are ignored and not included. Record the commit ID and SHA-256 checksum beside the archive. This is a local source candidate, not a Packagist release or a Composer version declaration.

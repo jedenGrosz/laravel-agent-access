@@ -2,6 +2,8 @@
 
 ## 0.1.0
 
+- Public contract review: normalized arguments reach resource-less Gate abilities, inherited/trait condition sources participate in fingerprints, and an independent native-host export acceptance flow verifies both.
+- Principal directory lookups honor the configured model's authentication identifier instead of assuming its primary key.
 - Package vendor selected as jedengrosz; public business-condition explanations, installation doctor and runtime-only consumer CI.
 - MCP failures retain safe correlation IDs for receipt lookup; MySQL receipt queries preserve case-sensitive identities.
 - Execution receipt envelopes and authorized read/list APIs across PHP, HTTP, MCP and Artisan; uncertain outcomes remain read-only.

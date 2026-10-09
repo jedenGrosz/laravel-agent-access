@@ -8,6 +8,8 @@ The existing IAM defines roles, permissions and baseline access. This package ad
 
 Start with the [host integration guide](docs/integration.md) for native Gate, Spatie, Sanctum, MCP and existing Passport. Local release preparation is described in [the release guide](docs/release.md).
 
+The [public API contract](docs/public-api.md) defines Gate argument signatures, host extension points, rule revisions, execution semantics and response compatibility.
+
 See [IAM inspection](docs/iam-inspection.md) for hierarchy navigation, ranked grantor roles and a side-effect-free grant simulator through PHP, HTTP, MCP and Artisan.
 
 The [action catalog](docs/action-catalog.md) documents action discovery and visibility query filtering. Minimum Laravel versions include upstream security fixes; see [compatibility verification](docs/verification.md).

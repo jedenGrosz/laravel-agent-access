@@ -14,8 +14,10 @@ use LaravelAgentAccess\Actions\ActionExecutor;
 use LaravelAgentAccess\Actions\ActionRegistry;
 use LaravelAgentAccess\Adapters\Laravel\CallbackRoleResolver;
 use LaravelAgentAccess\Approvals\ApprovalService;
+use LaravelAgentAccess\Authorization\DecisionService;
 use LaravelAgentAccess\Authorization\IamDecision;
 use LaravelAgentAccess\Contracts\RoleResolver;
+use LaravelAgentAccess\Exceptions\AccessException;
 use LaravelAgentAccess\Identity\ExecutionContext;
 use LaravelAgentAccess\Identity\Principal;
 use LaravelAgentAccess\Requests\AccessRequestService;
@@ -117,7 +119,72 @@ try {
     if (! $result['refunded'] || $grant->fresh()->uses !== 1 || class_exists(Server::class) || class_exists(Role::class)) {
         throw new RuntimeException('Fresh consumer smoke test failed.');
     }
-    echo "Fresh Laravel consumer: install, migration, approval and one-use refund passed without MCP or Spatie.\n";
+    $export = new #[RequiresPermission('reports.export', ability: 'exportReport')] class extends Action
+    {
+        public function key(): string
+        {
+            return 'reports.export';
+        }
+
+        public function rules(): array
+        {
+            return ['classification' => 'required|string', 'limit' => 'required|integer|min:1|max:100'];
+        }
+
+        public function normalize(array $arguments): array
+        {
+            return ['classification' => strtolower(trim($arguments['classification'])), 'limit' => (int) $arguments['limit']];
+        }
+
+        public function bindableArguments(): array
+        {
+            return ['classification', 'limit'];
+        }
+
+        public function handle(ExecutionContext $context, AccessRequirement $requirement): array
+        {
+            return ['export_id' => DB::table('smoke_report_exports')->insertGetId($requirement->arguments)] + $requirement->arguments;
+        }
+    };
+    app(ActionRegistry::class)->register($export);
+    app(RuleRegistry::class)->register(GrantRule::named('smoke-export')->forPermission('reports.export')->allowGlobalScope()
+        ->grantableBy('finance_manager')->toRole('support')->bindArguments(['classification', 'limit']));
+    if (! Schema::hasTable('smoke_report_exports')) {
+        Schema::create('smoke_report_exports', function ($table): void {
+            $table->id();
+            $table->string('classification');
+            $table->integer('limit');
+        });
+    }
+    $embargo = false;
+    Gate::define('exportReport', function (User $user, array $arguments = []) use (&$embargo): Response {
+        return $embargo || ($arguments['classification'] ?? 'public') === 'restricted'
+            ? Response::deny('Export forbidden.') : Response::deny('Missing permission.', IamDecision::MISSING_PERMISSION_CODE);
+    });
+    $input = ['classification' => ' PUBLIC ', 'limit' => '10'];
+    $before = DB::table('smoke_report_exports')->count();
+    $exportRequest = app(AccessRequestService::class)->create($ctx, 'reports.export', $input);
+    $exportGrant = app(ApprovalService::class)->approve($managerCtx, $exportRequest->id);
+    $embargo = true;
+    try {
+        app(ActionExecutor::class)->execute($ctx, 'reports.export', $input);
+        throw new RuntimeException('Export embargo was bypassed.');
+    } catch (AccessException $error) {
+        if ($error->decision?->reasonCode !== 'FORBIDDEN') {
+            throw new RuntimeException('Export denial had an unexpected reason.');
+        }
+    }
+    if ($exportGrant->fresh()->uses !== 0 || DB::table('smoke_report_exports')->count() !== $before) {
+        throw new RuntimeException('A forbidden export consumed access or ran its handler.');
+    }
+    $embargo = false;
+    $exportResult = app(ActionExecutor::class)->executeWithReceipt($ctx, 'reports.export', $input);
+    $restricted = app(DecisionService::class)->check($ctx, 'reports.export', ['classification' => 'RESTRICTED', 'limit' => 10]);
+    if ($exportResult->result['classification'] !== 'public' || $exportResult->result['limit'] !== 10 ||
+        $exportGrant->fresh()->uses !== 1 || DB::table('smoke_report_exports')->count() !== $before + 1 || $restricted->reasonCode !== 'FORBIDDEN') {
+        throw new RuntimeException('Resource-less export authorization failed.');
+    }
+    echo "Fresh Laravel consumer: installation, scoped refund and resource-less export passed without MCP or Spatie.\n";
 } catch (Throwable $error) {
     fwrite(STDERR, 'Fresh consumer smoke failed: '.($error::class === RuntimeException::class ? $error->getMessage() : $error::class).PHP_EOL);
     exit(1);

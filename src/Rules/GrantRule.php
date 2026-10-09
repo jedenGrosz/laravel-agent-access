@@ -152,11 +152,40 @@ final class GrantRule
     {
         $sources = [];
         foreach ($this->conditions as $condition) {
-            $file = (new \ReflectionClass($condition))->getFileName();
-            $sources[$condition] = $file === false ? null : hash_file('sha256', $file);
+            $sources[$condition] = $this->conditionSources(new \ReflectionClass($condition));
         }
 
         return hash('sha256', json_encode([get_object_vars($this), $sources], JSON_THROW_ON_ERROR));
+    }
+
+    /** @param \ReflectionClass<GrantCondition> $condition
+     * @return array<string, string|null> */
+    private function conditionSources(\ReflectionClass $condition): array
+    {
+        $sources = [];
+        $pending = [$condition];
+        while ($source = array_pop($pending)) {
+            $name = $source->getName();
+            if (array_key_exists($name, $sources)) {
+                continue;
+            }
+            $file = $source->getFileName();
+            if ($file === false) {
+                $sources[$name] = null;
+            } else {
+                if (! is_readable($file) || ($hash = hash_file('sha256', $file)) === false) {
+                    throw new \LogicException('Cannot fingerprint a grant condition source.');
+                }
+                $sources[$name] = $hash;
+            }
+            if ($parent = $source->getParentClass()) {
+                $pending[] = $parent;
+            }
+            array_push($pending, ...array_values($source->getTraits()));
+        }
+        ksort($sources);
+
+        return $sources;
     }
 
     /**

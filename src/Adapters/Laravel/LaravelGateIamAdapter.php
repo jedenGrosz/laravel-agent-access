@@ -19,7 +19,7 @@ final readonly class LaravelGateIamAdapter implements IamAdapter
     {
         $principal->refresh();
         $response = $this->gate->forUser($principal->user)->inspect($requirement->ability,
-            $requirement->resource === null ? [] : [$requirement->resource, $requirement->arguments]);
+            $requirement->resource === null ? [$requirement->arguments] : [$requirement->resource, $requirement->arguments]);
 
         return new IamDecision($response->allowed() ? IamOutcome::Allow :
             ($response->code() === IamDecision::MISSING_PERMISSION_CODE ? IamOutcome::MissingPermission : IamOutcome::Forbidden));
