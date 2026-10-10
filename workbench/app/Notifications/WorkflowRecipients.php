@@ -6,6 +6,7 @@ namespace Workbench\App\Notifications;
 
 use LaravelAgentAccess\Contracts\NotificationRecipients;
 use LaravelAgentAccess\Events\AccessEvent;
+use LaravelAgentAccess\Exceptions\AccessException;
 use LaravelAgentAccess\Identity\Principal;
 use LaravelAgentAccess\Identity\PrincipalDirectory;
 use LaravelAgentAccess\Models\AccessRequest;
@@ -25,7 +26,15 @@ final readonly class WorkflowRecipients implements NotificationRecipients
         if ($record === null) {
             return;
         }
-        $owner = $this->principals->find($record->principal_id, $record->principal_type);
+        try {
+            $owner = $this->principals->find($record->principal_id, $record->principal_type);
+        } catch (AccessException $exception) {
+            if ($exception->reasonCode !== 'PRINCIPAL_NOT_FOUND') {
+                throw $exception;
+            }
+
+            return;
+        }
         if ($event->type === 'ACCESS_REQUEST_CREATED') {
             foreach (User::role('finance_manager')->where('department', $owner->user->department)->where('is_suspended', false)->cursor() as $manager) {
                 yield new Principal($manager, $record->principal_type);

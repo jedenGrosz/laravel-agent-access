@@ -46,7 +46,7 @@ interface NotificationRecipients
 }
 ```
 
-The [Workbench resolver](../workbench/app/Notifications/WorkflowRecipients.php) is an example for Spatie: request creation selects active finance managers in the recipient's department; later lifecycle events select the owner. Configure the class in the host only when its IAM/model assumptions match the application. A host may instead bind its own resolver in the container.
+The [Workbench resolver](../workbench/app/Notifications/WorkflowRecipients.php) is an example for Spatie: request creation selects active finance managers in the recipient's department; later lifecycle events select the owner. If the owner has been deleted before queued delivery, it returns no recipients; configuration and database failures still propagate for queue retry. Configure the class in the host only when its IAM/model assumptions match the application. A host may instead bind its own resolver in the container. Custom resolvers should handle missing owners explicitly, including when yielding candidates lazily.
 
 Recipients must be configured authenticated-user models with Laravel's `Notifiable` trait. The listener validates their identity realm, refreshes them and checks current request/grant visibility at delivery time. Candidate selection does not authorize delivery. A manager who loses their role while a job waits is skipped.
 

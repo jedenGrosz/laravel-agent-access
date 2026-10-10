@@ -2,6 +2,7 @@
 
 ## 0.2.0 — administration preview (unreleased)
 
+- Workbench notification recipient selection skips deleted owners before queued delivery, while preserving infrastructure/configuration errors for retry.
 - Opt-in Blade approval inbox, request decisions, grant revocation and separately authorized hierarchy/rule viewer.
 - Queued database notifications with explicit host recipient selection, delivery-time identity/visibility checks and retry-safe UUIDs.
 - Encrypted principal/filter-bound cursor scans with bounded candidate reads through PHP, HTTP, MCP and Artisan.

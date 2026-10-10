@@ -9,9 +9,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use LaravelAgentAccess\Approvals\ApprovalService;
 use LaravelAgentAccess\Contracts\NotificationRecipients;
 use LaravelAgentAccess\Events\AccessEvent;
 use LaravelAgentAccess\Identity\Principal;
@@ -21,6 +23,7 @@ use LaravelAgentAccess\Models\Grant;
 use LaravelAgentAccess\Notifications\NotifyAccessEvent;
 use LaravelAgentAccess\Requests\AccessRequestService;
 use Workbench\App\Models\User;
+use Workbench\App\Notifications\WorkflowRecipients;
 
 final class OperationsTest extends TestCase
 {
@@ -131,6 +134,35 @@ final class OperationsTest extends TestCase
         $this->manager->assignRole('finance_manager');
         $job->handle($this->app);
         self::assertSame(2, DB::table('notifications')->count());
+    }
+
+    public function test_workbench_notifications_skip_an_owner_deleted_before_queued_delivery(): void
+    {
+        Notification::fake();
+        app()->bind(NotificationRecipients::class, WorkflowRecipients::class);
+        $request = app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+        app(ApprovalService::class)->approve($this->context($this->manager), $request->id);
+        $jobs = Queue::pushed(CallQueuedListener::class);
+        self::assertCount(2, $jobs);
+        $resolver = app(WorkflowRecipients::class);
+        self::assertSame((string) $this->manager->getKey(), iterator_to_array($resolver->recipients($jobs[0]->data[0]))[0]->id);
+        self::assertSame((string) $this->support->getKey(), iterator_to_array($resolver->recipients($jobs[1]->data[0]))[0]->id);
+
+        $this->support->delete();
+        foreach ($jobs as $job) {
+            $job->setJob($this->createMock(Job::class));
+            $job->handle($this->app);
+            $job->handle($this->app);
+        }
+        Notification::assertNothingSent();
+    }
+
+    public function test_workbench_notification_resolver_does_not_hide_configuration_errors(): void
+    {
+        $request = app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+        config(['agent-access.principal_model' => \stdClass::class]);
+        $this->expectException(\LogicException::class);
+        iterator_to_array(app(WorkflowRecipients::class)->recipients(new AccessEvent('ACCESS_REQUEST_CREATED', 'test', ['request_id' => $request->id])));
     }
 
     public function test_doctor_reports_missing_notification_storage_and_unsuitable_queue_without_writing(): void
