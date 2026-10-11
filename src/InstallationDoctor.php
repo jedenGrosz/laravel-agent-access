@@ -85,7 +85,10 @@ final readonly class InstallationDoctor
             if ($driver === 'database') {
                 try {
                     $schema = Schema::connection(config('queue.connections.'.$connection.'.connection'));
-                    $installed = $schema->hasTable((string) config('queue.connections.'.$connection.'.table', 'jobs'));
+                    $table = (string) config('queue.connections.'.$connection.'.table', 'jobs');
+                    $installed = $schema->hasTable($table) && $schema->hasColumns($table, [
+                        'id', 'queue', 'payload', 'attempts', 'reserved_at', 'available_at', 'created_at',
+                    ]);
                     $checks[] = ['check' => 'notification_queue_storage', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'HOST_MIGRATION_REQUIRED'];
                 } catch (\Throwable) {
                     $checks[] = ['check' => 'notification_queue_storage', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];

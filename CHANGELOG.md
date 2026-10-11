@@ -2,6 +2,7 @@
 
 ## 0.2.0 — administration preview (unreleased)
 
+- Installation diagnostics require essential database queue columns, honoring custom queue connections, table names and prefixes.
 - Installation diagnostics isolate notification and queue storage failures, preserving independent results and unique check names.
 - Notification retry deduplication follows the recipient's database route, including its connection and recipient scope; unrelated UUID collisions remain delivery failures.
 - Installation diagnostics detect incompatible notification identity column types for UUID/ULID hosts and inspect the principal model's notification storage connection.

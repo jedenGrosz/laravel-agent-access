@@ -131,6 +131,50 @@ final class DoctorTest extends TestCase
         self::assertSame(0, AuditEvent::query()->count());
     }
 
+    public function test_existing_incomplete_queue_table_requires_a_host_migration(): void
+    {
+        $this->createNotificationStorage('numericMorphs');
+        config(['agent-access.notifications.enabled' => true, 'queue.default' => 'fixture',
+            'queue.connections.fixture' => ['driver' => 'database', 'connection' => null, 'table' => 'jobs']]);
+        Schema::create('jobs', function (Blueprint $table): void {
+            $table->bigIncrements('id');
+            $table->string('queue');
+        });
+        $report = app(InstallationDoctor::class)->check();
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertTrue($checks['notification_storage']['passed']);
+        self::assertFalse($checks['notification_queue_storage']['passed']);
+        self::assertSame('HOST_MIGRATION_REQUIRED', $checks['notification_queue_storage']['reason_code']);
+        self::assertFalse($report['healthy']);
+        self::assertFalse(Schema::hasColumn('jobs', 'payload'));
+        self::assertSame(0, AuditEvent::query()->count());
+        $this->artisan('agent-access:doctor')->assertFailed();
+    }
+
+    public function test_complete_queue_storage_respects_a_custom_connection_table_and_prefix(): void
+    {
+        $this->createNotificationStorage('numericMorphs');
+        config(['agent-access.notifications.enabled' => true, 'queue.default' => 'fixture',
+            'queue.connections.fixture' => ['driver' => 'database', 'connection' => 'queue_fixture', 'table' => 'access_jobs'],
+            'database.connections.queue_fixture' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => 'fixture_']]);
+        Schema::connection('queue_fixture')->create('access_jobs', function (Blueprint $table): void {
+            $table->bigIncrements('id');
+            $table->string('queue')->index();
+            $table->longText('payload');
+            $table->unsignedTinyInteger('attempts');
+            $table->unsignedInteger('reserved_at')->nullable();
+            $table->unsignedInteger('available_at');
+            $table->unsignedInteger('created_at');
+        });
+        $report = app(InstallationDoctor::class)->check();
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertTrue($report['healthy']);
+        self::assertTrue($checks['notification_queue_storage']['passed']);
+        self::assertSame('INSTALLED', $checks['notification_queue_storage']['reason_code']);
+        self::assertFalse(Schema::hasTable('access_jobs'));
+        self::assertSame(0, AuditEvent::query()->count());
+    }
+
     private function createNotificationStorage(string $morphs): void
     {
         Schema::create('notifications', function (Blueprint $table) use ($morphs): void {
