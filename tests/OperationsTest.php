@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests;
 
 use Illuminate\Contracts\Queue\Job;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -20,6 +22,7 @@ use LaravelAgentAccess\Identity\Principal;
 use LaravelAgentAccess\InstallationDoctor;
 use LaravelAgentAccess\Models\AuditEvent;
 use LaravelAgentAccess\Models\Grant;
+use LaravelAgentAccess\Notifications\AccessWorkflowNotification;
 use LaravelAgentAccess\Notifications\NotifyAccessEvent;
 use LaravelAgentAccess\Requests\AccessRequestService;
 use Workbench\App\Models\User;
@@ -102,14 +105,7 @@ final class OperationsTest extends TestCase
     public function test_database_delivery_is_redacted_retry_safe_and_rechecks_visibility(): void
     {
         Queue::fake();
-        Schema::create('notifications', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->string('type');
-            $table->morphs('notifiable');
-            $table->text('data');
-            $table->timestamp('read_at')->nullable();
-            $table->timestamps();
-        });
+        $this->createNotificationStorage();
         $users = [$this->support, $this->manager];
         app()->instance(NotificationRecipients::class, new class($users) implements NotificationRecipients
         {
@@ -134,6 +130,89 @@ final class OperationsTest extends TestCase
         $this->manager->assignRole('finance_manager');
         $job->handle($this->app);
         self::assertSame(2, DB::table('notifications')->count());
+    }
+
+    public function test_notification_delivery_and_retries_use_the_recipient_database_connection(): void
+    {
+        app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+        config(['database.connections.notification_fixture' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]);
+        Schema::connection('notification_fixture')->create('users', function (Blueprint $table): void {
+            $table->unsignedBigInteger('id')->primary();
+            $table->string('name');
+            $table->timestamps();
+        });
+        $this->createNotificationStorage('notification_fixture');
+        $recipient = new User(['id' => $this->support->getKey(), 'name' => 'Support']);
+        $recipient->setConnection('notification_fixture');
+        $recipient->save();
+        $this->useNotificationRecipient($recipient);
+        $job = Queue::pushed(CallQueuedListener::class)->first();
+        $job->setJob($this->createMock(Job::class));
+        $job->handle($this->app);
+        $job->handle($this->app);
+        self::assertFalse(Schema::hasTable('notifications'));
+        self::assertSame(1, DB::connection('notification_fixture')->table('notifications')->count());
+        self::assertSame(1, $recipient->notifications()->count());
+    }
+
+    public function test_a_notification_owned_by_someone_else_does_not_count_as_successful_delivery(): void
+    {
+        $this->createNotificationStorage();
+        app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+        $this->useNotificationRecipient($this->support);
+        $job = Queue::pushed(CallQueuedListener::class)->first();
+        $notification = new AccessWorkflowNotification($job->data[0], new Principal($this->support));
+        $this->manager->notifications()->create(['id' => $notification->id, 'type' => 'fixture', 'data' => []]);
+        $job->setJob($this->createMock(Job::class));
+        $this->expectException(UniqueConstraintViolationException::class);
+        $job->handle($this->app);
+    }
+
+    public function test_notification_insert_conflict_is_rechecked_after_another_delivery(): void
+    {
+        $this->createNotificationStorage();
+        app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+        $this->useNotificationRecipient($this->support);
+        $job = Queue::pushed(CallQueuedListener::class)->first();
+        $notification = new AccessWorkflowNotification($job->data[0], new Principal($this->support));
+        $inserted = false;
+        DB::listen(function (QueryExecuted $query) use (&$inserted, $notification): void {
+            if (! $inserted && str_starts_with(strtolower($query->sql), 'select exists') && str_contains($query->sql, 'notifications')) {
+                // Simulate delivery after the first existence read but before this job's insert.
+                $inserted = true;
+                $this->support->notifications()->create(['id' => $notification->id, 'type' => AccessWorkflowNotification::class,
+                    'data' => $notification->toArray($this->support)]);
+            }
+        });
+        $job->setJob($this->createMock(Job::class));
+        $job->handle($this->app);
+        self::assertTrue($inserted);
+        self::assertSame(1, $this->support->notifications()->count());
+    }
+
+    private function createNotificationStorage(?string $connection = null): void
+    {
+        Schema::connection($connection)->create('notifications', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('type');
+            $table->numericMorphs('notifiable');
+            $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    private function useNotificationRecipient(User $recipient): void
+    {
+        app()->instance(NotificationRecipients::class, new class($recipient) implements NotificationRecipients
+        {
+            public function __construct(private readonly User $recipient) {}
+
+            public function recipients(AccessEvent $event): iterable
+            {
+                return [new Principal($this->recipient)];
+            }
+        });
     }
 
     public function test_workbench_notifications_skip_an_owner_deleted_before_queued_delivery(): void

@@ -2,6 +2,7 @@
 
 ## 0.2.0 — administration preview (unreleased)
 
+- Notification retry deduplication follows the recipient's database route, including its connection and recipient scope; unrelated UUID collisions remain delivery failures.
 - Installation diagnostics detect incompatible notification identity column types for UUID/ULID hosts and inspect the principal model's notification storage connection.
 - Workbench notification recipient selection skips deleted owners before queued delivery, while preserving infrastructure/configuration errors for retry.
 - Opt-in Blade approval inbox, request decisions, grant revocation and separately authorized hierarchy/rule viewer.

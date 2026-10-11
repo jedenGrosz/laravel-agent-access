@@ -68,6 +68,8 @@ The queued listener subscribes only when enabled, filters the configured lifecyc
 
 Database delivery uses a deterministic UUID per audit event and recipient, backed by the notification table's primary key. Retrying the same job does not create another database notification. This guarantee applies to the built-in database channel, not external email/SMS delivery.
 
+Duplicate checks use the same recipient database route as Laravel's database channel, preserving its table, connection and recipient constraints. A matching UUID belonging to someone else is a storage conflict, not successful delivery. Custom database notification routes must return an Eloquent relation or builder and scope it to the intended recipient. The installation doctor checks standard storage; custom routes need their own host integration checks.
+
 Queue-enqueue failure after commit cannot undo an approved request or issued grant. The audit event remains durable evidence; application operations should monitor enqueue/worker failures and use existing request idempotency when retrying. This preview does not introduce a transactional outbox. Hosts can add explicitly configured email/chat integrations through their own queued AccessEvent listeners.
 
 ## Large histories: cursor scans

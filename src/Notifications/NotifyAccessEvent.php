@@ -6,9 +6,11 @@ namespace LaravelAgentAccess\Notifications;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Notifications\DatabaseNotification;
 use LaravelAgentAccess\Contracts\NotificationRecipients;
 use LaravelAgentAccess\Contracts\PrincipalResolver;
 use LaravelAgentAccess\Events\AccessEvent;
@@ -68,16 +70,32 @@ final class NotifyAccessEvent implements ShouldQueueAfterCommit
                 throw new \LogicException('Notification recipients must use Laravel Notifiable.');
             }
             $notification = new AccessWorkflowNotification($event, $recipient);
-            if (DatabaseNotification::query()->whereKey($notification->id)->exists()) {
+            $route = $recipient->user->routeNotificationFor('database', $notification);
+            $query = $route instanceof Relation ? $route->getQuery() : $route;
+            if (! $query instanceof Builder) {
+                throw new \LogicException('Database notifications must route to an Eloquent relation or builder.');
+            }
+            $query = (clone $query)->whereKey($notification->id);
+            if ($this->notificationExists($query)) {
                 continue;
             }
             try {
                 $recipient->user->notify($notification);
             } catch (UniqueConstraintViolationException $exception) {
-                if (DatabaseNotification::query()->find($notification->id) === null) {
+                if (! $this->notificationExists($query)) {
                     throw $exception;
                 }
             }
         }
+    }
+
+    /**
+     * @param  Builder<Model>  $query
+     *
+     * @phpstan-impure
+     */
+    private function notificationExists(Builder $query): bool
+    {
+        return $query->exists();
     }
 }
