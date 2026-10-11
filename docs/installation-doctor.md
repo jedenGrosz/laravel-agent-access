@@ -9,6 +9,8 @@ The command checks reachable package configuration, whether the configured princ
 
 When database notifications are enabled, it checks storage on the configured principal model's connection, whether the notification identity column can store the model's integer/string primary key, and asynchronous queue configuration/storage. `NOTIFICATION_KEY_TYPE_MISMATCH` usually means a UUID/ULID host still has numeric notification morphs. This check uses the model's primary key, not its authentication identifier; it does not validate column lengths, UUID formats or custom notification relationships.
 
+Notification storage and queue storage are diagnosed independently. A queue database failure reports `notification_queue_storage: DATABASE_UNAVAILABLE` and does not overwrite a successful notification storage check. Unavailable notification storage does not skip the queue checks. Each check name appears once, making the JSON safe to index by name; unavailable prerequisites omit the dependent identity check.
+
 It returns a nonzero exit status for missing migrations, unavailable storage or invalid configuration. It never publishes files, runs migrations, executes business actions or writes audit. JSON contains only named checks and safe reason codes; no connection credentials, SQL statements or raw exception messages are returned.
 
 This is a local administrative command like `validate`, so it does not require `--as`. It is not exposed through HTTP/MCP. Access operations still require an authenticated principal and their usual policies.

@@ -86,6 +86,51 @@ final class DoctorTest extends TestCase
         self::assertTrue($checks['notification_identity']['passed']);
     }
 
+    public function test_unavailable_queue_storage_does_not_overwrite_healthy_notification_storage(): void
+    {
+        $this->createNotificationStorage('numericMorphs');
+        config(['agent-access.notifications.enabled' => true, 'queue.default' => 'fixture',
+            'queue.connections.fixture' => ['driver' => 'database', 'connection' => 'private-unavailable-connection', 'table' => 'jobs']]);
+        $report = app(InstallationDoctor::class)->check();
+        $names = array_column($report['checks'], 'check');
+        self::assertCount(count($names), array_unique($names));
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertTrue($checks['notification_storage']['passed']);
+        self::assertTrue($checks['notification_queue']['passed']);
+        self::assertSame('DATABASE_UNAVAILABLE', $checks['notification_queue_storage']['reason_code']);
+        self::assertFalse($checks['notification_queue_storage']['passed']);
+        self::assertFalse($report['healthy']);
+        self::assertStringNotContainsString('private-unavailable-connection', json_encode($report));
+        self::assertSame(0, AuditEvent::query()->count());
+        $this->artisan('agent-access:doctor', ['--json' => true])->assertFailed();
+    }
+
+    public function test_unavailable_notification_storage_does_not_skip_queue_diagnostics(): void
+    {
+        config(['agent-access.notifications.enabled' => true, 'agent-access.principal_model' => NotificationConnectionUser::class,
+            'database.connections.notification_fixture' => ['driver' => 'private-unsupported-driver'],
+            'queue.default' => 'fixture', 'queue.connections.fixture' => ['driver' => 'database', 'connection' => null, 'table' => 'jobs']]);
+        Schema::create('jobs', function (Blueprint $table): void {
+            $table->bigIncrements('id');
+            $table->string('queue')->index();
+            $table->longText('payload');
+            $table->unsignedTinyInteger('attempts');
+            $table->unsignedInteger('reserved_at')->nullable();
+            $table->unsignedInteger('available_at');
+            $table->unsignedInteger('created_at');
+        });
+        $report = app(InstallationDoctor::class)->check();
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertSame('DATABASE_UNAVAILABLE', $checks['notification_storage']['reason_code']);
+        self::assertFalse($checks['notification_storage']['passed']);
+        self::assertTrue($checks['notification_queue']['passed']);
+        self::assertSame('INSTALLED', $checks['notification_queue_storage']['reason_code']);
+        self::assertTrue($checks['notification_queue_storage']['passed']);
+        self::assertFalse($report['healthy']);
+        self::assertStringNotContainsString('private-unsupported-driver', json_encode($report));
+        self::assertSame(0, AuditEvent::query()->count());
+    }
+
     private function createNotificationStorage(string $morphs): void
     {
         Schema::create('notifications', function (Blueprint $table) use ($morphs): void {

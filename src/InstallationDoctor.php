@@ -56,29 +56,40 @@ final readonly class InstallationDoctor
             $checks[] = ['check' => 'http_sanctum', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'AUTHENTICATION_PACKAGE_REQUIRED'];
         }
         if (config('agent-access.notifications.enabled')) {
+            $principal = null;
+            $notificationSchema = null;
+            $installed = false;
             try {
                 $principal = is_string($model) && is_subclass_of($model, Model::class) ? new $model : null;
                 $notificationSchema = Schema::connection($principal?->getConnectionName());
                 $installed = $notificationSchema->hasTable('notifications') && $notificationSchema->hasColumns('notifications', ['id', 'notifiable_type', 'notifiable_id', 'data']);
                 $checks[] = ['check' => 'notification_storage', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'HOST_MIGRATION_REQUIRED'];
-                if ($installed && $validModel && $principal !== null) {
+            } catch (\Throwable) {
+                $checks[] = ['check' => 'notification_storage', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];
+            }
+            if ($installed && $validModel && $principal !== null) {
+                try {
                     $columnType = strtolower($notificationSchema->getColumnType('notifications', 'notifiable_id'));
                     $integer = in_array($columnType, ['tinyint', 'smallint', 'mediumint', 'int', 'integer', 'bigint', 'int2', 'int4', 'int8'], true);
                     $text = in_array($columnType, ['char', 'varchar', 'nvarchar', 'nchar', 'text', 'tinytext', 'mediumtext', 'longtext', 'bpchar', 'character', 'character varying', 'citext', 'clob'], true);
                     $compatible = $principal->getKeyType() === 'string' ? ($text || $columnType === 'uuid') : ($integer || $text);
                     $checks[] = ['check' => 'notification_identity', 'passed' => $compatible, 'reason_code' => $compatible ? 'COMPATIBLE_KEY_TYPE' : 'NOTIFICATION_KEY_TYPE_MISMATCH'];
+                } catch (\Throwable) {
+                    $checks[] = ['check' => 'notification_identity', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];
                 }
-                $connection = (string) config('queue.default');
-                $driver = config('queue.connections.'.$connection.'.driver');
-                $async = is_string($driver) && ! in_array($driver, ['sync', 'null'], true);
-                $checks[] = ['check' => 'notification_queue', 'passed' => $async, 'reason_code' => $async ? 'CONFIGURED' : 'ASYNC_QUEUE_REQUIRED'];
-                if ($driver === 'database') {
+            }
+            $connection = config('queue.default');
+            $driver = is_string($connection) ? config('queue.connections.'.$connection.'.driver') : null;
+            $async = is_string($driver) && ! in_array($driver, ['sync', 'null'], true);
+            $checks[] = ['check' => 'notification_queue', 'passed' => $async, 'reason_code' => $async ? 'CONFIGURED' : 'ASYNC_QUEUE_REQUIRED'];
+            if ($driver === 'database') {
+                try {
                     $schema = Schema::connection(config('queue.connections.'.$connection.'.connection'));
                     $installed = $schema->hasTable((string) config('queue.connections.'.$connection.'.table', 'jobs'));
                     $checks[] = ['check' => 'notification_queue_storage', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'HOST_MIGRATION_REQUIRED'];
+                } catch (\Throwable) {
+                    $checks[] = ['check' => 'notification_queue_storage', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];
                 }
-            } catch (\Throwable) {
-                $checks[] = ['check' => 'notification_storage', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];
             }
         }
 
