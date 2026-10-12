@@ -175,6 +175,35 @@ final class DoctorTest extends TestCase
         self::assertSame(0, AuditEvent::query()->count());
     }
 
+    public function test_notification_model_readiness_is_required_only_when_notifications_are_enabled(): void
+    {
+        config(['agent-access.principal_model' => EmailIdentityUser::class]);
+        $report = app(InstallationDoctor::class)->check();
+        self::assertTrue($report['healthy']);
+        self::assertNotContains('notification_model', array_column($report['checks'], 'check'));
+
+        config(['agent-access.notifications.enabled' => true]);
+        $report = app(InstallationDoctor::class)->check();
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertTrue($checks['principal_model']['passed']);
+        self::assertFalse($checks['notification_model']['passed']);
+        self::assertSame('NOTIFIABLE_MODEL_REQUIRED', $checks['notification_model']['reason_code']);
+        self::assertStringNotContainsString('EmailIdentityUser', json_encode($report));
+        self::assertSame(0, AuditEvent::query()->count());
+        $this->artisan('agent-access:doctor', ['--json' => true])->assertFailed();
+    }
+
+    public function test_notifiable_model_is_recognized_without_creating_notification_storage(): void
+    {
+        config(['agent-access.notifications.enabled' => true]);
+        $report = app(InstallationDoctor::class)->check();
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertTrue($checks['notification_model']['passed']);
+        self::assertSame('VALID', $checks['notification_model']['reason_code']);
+        self::assertFalse(Schema::hasTable('notifications'));
+        self::assertSame(0, AuditEvent::query()->count());
+    }
+
     private function createNotificationStorage(string $morphs): void
     {
         Schema::create('notifications', function (Blueprint $table) use ($morphs): void {

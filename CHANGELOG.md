@@ -2,6 +2,7 @@
 
 ## 0.2.0 — administration preview (unreleased)
 
+- Opt-in installation diagnostics report missing notification methods on the configured authenticatable model without attempting delivery.
 - Installation diagnostics require essential database queue columns, honoring custom queue connections, table names and prefixes.
 - Installation diagnostics isolate notification and queue storage failures, preserving independent results and unique check names.
 - Notification retry deduplication follows the recipient's database route, including its connection and recipient scope; unrelated UUID collisions remain delivery failures.

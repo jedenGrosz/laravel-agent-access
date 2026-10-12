@@ -56,6 +56,8 @@ final readonly class InstallationDoctor
             $checks[] = ['check' => 'http_sanctum', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'AUTHENTICATION_PACKAGE_REQUIRED'];
         }
         if (config('agent-access.notifications.enabled')) {
+            $notifiable = $validModel && method_exists($model, 'notify') && method_exists($model, 'routeNotificationFor');
+            $checks[] = ['check' => 'notification_model', 'passed' => $notifiable, 'reason_code' => $notifiable ? 'VALID' : 'NOTIFIABLE_MODEL_REQUIRED'];
             $principal = null;
             $notificationSchema = null;
             $installed = false;
