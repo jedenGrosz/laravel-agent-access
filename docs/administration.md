@@ -38,6 +38,8 @@ Customize domain-specific argument formatting, host layout, translations and CSP
 
 Enable `agent-access.notifications.enabled` and configure `notifications.recipients` with a class implementing `NotificationRecipients`. The default resolver returns no candidates; the package does not enumerate the application's users.
 
+When enabled, `notifications.queue` must be a non-empty string and `notifications.events` a list of non-empty event names. Package boot and `agent-access:validate` reject invalid shapes before queued delivery. An empty event list intentionally subscribes to nothing; custom host event names remain valid. These settings are ignored by validation when the adapter is disabled.
+
 ```php
 interface NotificationRecipients
 {

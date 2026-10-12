@@ -14,6 +14,21 @@ final readonly class ConfigurationValidator
 
     public function validate(): void
     {
+        if (config('agent-access.notifications.enabled')) {
+            $queue = config('agent-access.notifications.queue', 'default');
+            if (! is_string($queue) || trim($queue) === '') {
+                throw new \LogicException('Notification queue name must be a non-empty string.');
+            }
+            $events = config('agent-access.notifications.events', []);
+            if (! is_array($events) || ! array_is_list($events)) {
+                throw new \LogicException('Notification events must be a list of non-empty strings.');
+            }
+            foreach ($events as $event) {
+                if (! is_string($event) || trim($event) === '') {
+                    throw new \LogicException('Notification events must be a list of non-empty strings.');
+                }
+            }
+        }
         foreach ($this->actions->all() as $action) {
             $attribute = $this->requirements->attribute($action->key());
             $fields = $action->rules();
