@@ -89,6 +89,8 @@ Cursor mode orders by ULID and uses SQL `id > last_scanned_id`, with a bounded c
 
 Cursors are encrypted/authenticated with the host application key, bound to the principal identity, record kind and status filter, and expire after one hour. Tampering or reuse by another user/list/filter gives `INVALID_CURSOR` (422). Role/rule/condition changes are checked anew at every scan. Restart scanning after a visibility/filter change if earlier records must be reconsidered.
 
+A cursor becomes invalid at its expiry timestamp. Decryption, JSON and binding failures are client cursor errors; encryption service configuration failures, such as a missing application key, remain infrastructure errors rather than being mislabeled `INVALID_CURSOR`.
+
 A scan window can contain only hidden records, so an empty `data` with a `next_cursor` is valid. The cursor signals scan continuation, not a promise that another authorized record exists. Hidden record IDs and exact counts are not returned. This bounded work limits per-request database reads and PHP policy evaluation; it is not snapshot isolation or an arbitrary-data-volume performance guarantee. Hosts needing exact totals over huge datasets should add a visibility query adapter tailored to their IAM instead of removing final authorization checks.
 
 Tests include a 2,001-request history with one bounded SQL read, cursor audience/filter enforcement, role loss, cross-transport parity, CSRF/XSS, after-commit/rollback behavior and real database notification retry/delivery checks.

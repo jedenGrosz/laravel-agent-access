@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use Carbon\CarbonImmutable;
+use Illuminate\Encryption\MissingAppKeyException;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
@@ -105,5 +108,54 @@ final class CursorTest extends TestCase
         self::assertCount(1, $reads);
         self::assertStringContainsString('limit 40', $reads[0]['query']);
         self::assertArrayNotHasKey('total', $page);
+    }
+
+    public function test_cursor_expires_exactly_at_its_one_hour_boundary(): void
+    {
+        $issued = CarbonImmutable::parse('2026-10-12 10:00:00', 'UTC');
+        CarbonImmutable::setTestNow($issued);
+        try {
+            app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+            $second = app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+            $cursor = app(QueryService::class)->requestsCursor($this->context(), 1)['next_cursor'];
+            self::assertNotNull($cursor);
+            CarbonImmutable::setTestNow($issued->addHour()->subMicrosecond());
+            $page = app(QueryService::class)->requestsCursor($this->context(), 1, $cursor);
+            self::assertSame($second->id, $page['data'][0]['id']);
+            CarbonImmutable::setTestNow($issued->addHour());
+            $this->expectException(AccessException::class);
+            $this->expectExceptionMessage('INVALID_CURSOR');
+            app(QueryService::class)->requestsCursor($this->context(), 1, $cursor);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_missing_application_key_is_not_reported_as_an_invalid_client_cursor(): void
+    {
+        for ($i = 0; $i < 2; $i++) {
+            app(AccessRequestService::class)->create($this->context(), 'orders.refund', $this->args());
+        }
+        $cursor = app(QueryService::class)->requestsCursor($this->context(), 1)['next_cursor'];
+        $key = config('app.key');
+        config(['app.key' => null]);
+        $this->app->forgetInstance('encrypter');
+        Crypt::clearResolvedInstance('encrypter');
+        try {
+            $this->expectException(MissingAppKeyException::class);
+            app(QueryService::class)->requestsCursor($this->context(), 1, $cursor);
+        } finally {
+            config(['app.key' => $key]);
+            $this->app->forgetInstance('encrypter');
+            Crypt::clearResolvedInstance('encrypter');
+        }
+    }
+
+    public function test_decrypted_malformed_cursor_json_is_rejected(): void
+    {
+        $cursor = Crypt::encryptString('{');
+        $this->expectException(AccessException::class);
+        $this->expectExceptionMessage('INVALID_CURSOR');
+        app(QueryService::class)->requestsCursor($this->context(), 1, $cursor);
     }
 }

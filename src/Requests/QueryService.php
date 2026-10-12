@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaravelAgentAccess\Requests;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
@@ -101,12 +102,12 @@ final readonly class QueryService
         if ($cursor !== null) {
             try {
                 $state = json_decode(Crypt::decryptString($cursor), true, flags: JSON_THROW_ON_ERROR);
-                if (! is_array($state) || array_intersect_key($state, $binding) !== $binding ||
-                    ! isset($state['after'], $state['expires']) || ! is_string($state['after']) || ! Str::isUlid($state['after']) ||
-                    ! is_int($state['expires']) || $state['expires'] <= CarbonImmutable::now('UTC')->getTimestamp()) {
-                    throw new \InvalidArgumentException;
-                }
-            } catch (\Throwable) {
+            } catch (DecryptException|\JsonException) {
+                throw new AccessException('INVALID_CURSOR', 422);
+            }
+            if (! is_array($state) || array_intersect_key($state, $binding) !== $binding ||
+                ! isset($state['after'], $state['expires']) || ! is_string($state['after']) || ! Str::isUlid($state['after']) ||
+                ! is_int($state['expires']) || $state['expires'] <= CarbonImmutable::now('UTC')->getTimestamp()) {
                 throw new AccessException('INVALID_CURSOR', 422);
             }
             $query->where('id', '>', $state['after']);
