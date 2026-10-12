@@ -64,7 +64,9 @@ final readonly class InstallationDoctor
             try {
                 $principal = is_string($model) && is_subclass_of($model, Model::class) ? new $model : null;
                 $notificationSchema = Schema::connection($principal?->getConnectionName());
-                $installed = $notificationSchema->hasTable('notifications') && $notificationSchema->hasColumns('notifications', ['id', 'notifiable_type', 'notifiable_id', 'data']);
+                $installed = $notificationSchema->hasTable('notifications') && $notificationSchema->hasColumns('notifications', [
+                    'id', 'type', 'notifiable_type', 'notifiable_id', 'data', 'read_at', 'created_at', 'updated_at',
+                ]);
                 $checks[] = ['check' => 'notification_storage', 'passed' => $installed, 'reason_code' => $installed ? 'INSTALLED' : 'HOST_MIGRATION_REQUIRED'];
             } catch (\Throwable) {
                 $checks[] = ['check' => 'notification_storage', 'passed' => false, 'reason_code' => 'DATABASE_UNAVAILABLE'];

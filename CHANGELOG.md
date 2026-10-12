@@ -2,6 +2,7 @@
 
 ## 0.2.0 — administration preview (unreleased)
 
+- Installation diagnostics reject incomplete notification tables missing standard delivery/read-state/timestamp columns.
 - Enabled notification adapters validate queue names and event-list shapes at boot and through `agent-access:validate`, preserving custom host events and empty lists.
 - Opt-in installation diagnostics report missing notification methods on the configured authenticatable model without attempting delivery.
 - Installation diagnostics require essential database queue columns, honoring custom queue connections, table names and prefixes.

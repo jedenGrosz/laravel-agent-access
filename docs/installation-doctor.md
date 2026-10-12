@@ -11,6 +11,8 @@ When database notifications are enabled, it checks storage on the configured pri
 
 The opt-in `notification_model` check requires the authenticatable model's `notify` and `routeNotificationFor` methods, normally provided by Laravel's `Notifiable` trait. Missing methods report `NOTIFIABLE_MODEL_REQUIRED` before the worker attempts delivery. The doctor checks method presence without calling them; it does not send notifications or verify custom method implementations. Notification support is not required when this adapter is disabled.
 
+Standard notification storage requires `id`, `type`, `notifiable_type`, `notifiable_id`, `data`, `read_at`, `created_at`, `updated_at`. An existing incomplete table reports `HOST_MIGRATION_REQUIRED`, and its dependent identity check is omitted. The doctor leaves the schema untouched.
+
 Notification storage and queue storage are diagnosed independently. A queue database failure reports `notification_queue_storage: DATABASE_UNAVAILABLE` and does not overwrite a successful notification storage check. Unavailable notification storage does not skip the queue checks. Each check name appears once, making the JSON safe to index by name; unavailable prerequisites omit the dependent identity check.
 
 For a database queue, storage readiness requires the configured table and Laravel's essential job columns: `id`, `queue`, `payload`, `attempts`, `reserved_at`, `available_at`, `created_at`. An existing incomplete table reports `HOST_MIGRATION_REQUIRED`; the doctor does not repair it. The check honors the queue's database connection, table name and connection prefix. It does not validate every column type/index or prove that a worker is running.

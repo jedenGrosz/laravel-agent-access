@@ -77,8 +77,11 @@ final class DoctorTest extends TestCase
             'database.connections.notification_fixture' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]);
         Schema::connection('notification_fixture')->create('notifications', function (Blueprint $table): void {
             $table->uuid('id')->primary();
+            $table->string('type');
             $table->numericMorphs('notifiable');
             $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
         });
         self::assertFalse(Schema::hasTable('notifications'));
         $checks = array_column(app(InstallationDoctor::class)->check()['checks'], null, 'check');
@@ -204,12 +207,35 @@ final class DoctorTest extends TestCase
         self::assertSame(0, AuditEvent::query()->count());
     }
 
+    public function test_existing_incomplete_notification_table_requires_a_host_migration(): void
+    {
+        config(['agent-access.notifications.enabled' => true]);
+        Schema::create('notifications', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->numericMorphs('notifiable');
+            $table->text('data');
+        });
+        $report = app(InstallationDoctor::class)->check();
+        $checks = array_column($report['checks'], null, 'check');
+        self::assertTrue($checks['notification_model']['passed']);
+        self::assertFalse($checks['notification_storage']['passed']);
+        self::assertSame('HOST_MIGRATION_REQUIRED', $checks['notification_storage']['reason_code']);
+        self::assertArrayNotHasKey('notification_identity', $checks);
+        self::assertFalse(Schema::hasColumn('notifications', 'type'));
+        self::assertFalse(Schema::hasColumn('notifications', 'read_at'));
+        self::assertSame(0, AuditEvent::query()->count());
+        $this->artisan('agent-access:doctor', ['--json' => true])->assertFailed();
+    }
+
     private function createNotificationStorage(string $morphs): void
     {
         Schema::create('notifications', function (Blueprint $table) use ($morphs): void {
             $table->uuid('id')->primary();
+            $table->string('type');
             $table->{$morphs}('notifiable');
             $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
         });
     }
 }
