@@ -2,6 +2,7 @@
 
 ## 0.2.0 — administration preview (unreleased)
 
+- PHP cursor scans reject oversized tokens before decryption, matching the transport length limit.
 - Cursor validation preserves encryption infrastructure errors while rejecting malformed client tokens; expiry boundaries are covered by regression tests.
 - Installation diagnostics reject incomplete notification tables missing standard delivery/read-state/timestamp columns.
 - Enabled notification adapters validate queue names and event-list shapes at boot and through `agent-access:validate`, preserving custom host events and empty lists.

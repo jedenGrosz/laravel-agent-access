@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Encryption\MissingAppKeyException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -154,6 +155,30 @@ final class CursorTest extends TestCase
     public function test_decrypted_malformed_cursor_json_is_rejected(): void
     {
         $cursor = Crypt::encryptString('{');
+        $this->expectException(AccessException::class);
+        $this->expectExceptionMessage('INVALID_CURSOR');
+        app(QueryService::class)->requestsCursor($this->context(), 1, $cursor);
+    }
+
+    public function test_oversized_php_cursors_are_rejected_without_decryption(): void
+    {
+        Crypt::shouldReceive('decryptString')->never();
+        $service = app(QueryService::class);
+        foreach (['requestsCursor', 'grantsCursor'] as $method) {
+            try {
+                $service->{$method}($this->context(), 1, str_repeat('x', 4097));
+                self::fail('Oversized cursors must be rejected.');
+            } catch (AccessException $exception) {
+                self::assertSame('INVALID_CURSOR', $exception->reasonCode);
+                self::assertSame(422, $exception->status);
+            }
+        }
+    }
+
+    public function test_cursor_at_the_size_limit_still_reaches_decryption(): void
+    {
+        $cursor = str_repeat('x', 4096);
+        Crypt::shouldReceive('decryptString')->once()->with($cursor)->andThrow(new DecryptException);
         $this->expectException(AccessException::class);
         $this->expectExceptionMessage('INVALID_CURSOR');
         app(QueryService::class)->requestsCursor($this->context(), 1, $cursor);

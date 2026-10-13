@@ -100,6 +100,9 @@ final readonly class QueryService
         }
         $binding = ['version' => 1, 'type' => $context->principal->type, 'principal' => $context->principal->id, 'kind' => $kind, 'status' => $status];
         if ($cursor !== null) {
+            if (strlen($cursor) > 4096) {
+                throw new AccessException('INVALID_CURSOR', 422);
+            }
             try {
                 $state = json_decode(Crypt::decryptString($cursor), true, flags: JSON_THROW_ON_ERROR);
             } catch (DecryptException|\JsonException) {
